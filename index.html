@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NutraACS — get_credit_limit API Documentation</title>
+  <style>
+    :root{--bg:#0f1724;--card:#111827;--muted:#9ca3af;--accent:#7c3aed;--glass:rgba(255,255,255,0.03)}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;margin:0;background:linear-gradient(180deg,#071025 0%,#081224 100%);color:#e6eef8}
+    .container{max-width:980px;margin:40px auto;padding:28px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.7)}
+    h1{font-size:22px;margin:0 0 8px}
+    p.lead{color:var(--muted);margin-top:0}
+    .card{background:var(--card);border-radius:10px;padding:18px;margin:18px 0;border:1px solid rgba(255,255,255,0.03)}
+    pre{background:var(--glass);padding:12px;border-radius:8px;overflow:auto;font-family:SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;font-size:13px}
+    table{width:100%;border-collapse:collapse;margin-top:6px}
+    th,td{padding:8px;border-bottom:1px dashed rgba(255,255,255,0.03);text-align:left}
+    th{color:var(--muted);font-weight:600}
+    code.badge{background:rgba(255,255,255,0.03);padding:4px 8px;border-radius:6px;font-size:13px}
+    .note{background:linear-gradient(90deg,rgba(255,255,255,0.02),transparent);padding:10px;border-radius:8px;border-left:4px solid var(--accent);color:var(--muted);}
+    .row{display:flex;gap:16px;flex-wrap:wrap}
+    .col{flex:1;min-width:260px}
+    footer{color:var(--muted);font-size:13px;margin-top:18px}
+    a{color:var(--accent)}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>NutraACS — <span class="badge">GET /api/common/common/get_credit_limit</span></h1>
+      <p class="lead">Documentation and calculation details for obtaining customer credit limit information. Includes payload, headers, response schema and the exact calculation logic used by the backend.</p>
+    </header>
+
+    <section class="card">
+      <h2>Overview</h2>
+      <p>Use this endpoint to fetch a customer's credit limit information including total credit limit, used amount, balance and usage percentage.</p>
+      <p class="note"><strong>Important:</strong> Business rule about the credit balance calculation is controlled by Neraaj — <em>do not change the formula without consulting</em>.</p>
+    </section>
+
+    <section class="card">
+      <h2>Endpoint</h2>
+      <pre>POST https://nutraacs.com/api/common/common/get_credit_limit</pre>
+
+      <h3>Headers</h3>
+      <pre>Content-Type: application/json
+x-access-token: Bearer &lt;Access_token&gt;</pre>
+
+      <h3>Request Payload</h3>
+      <pre>{
+  "strCustomerCode": "<strCustomerCode configured in customer master>"
+}</pre>
+    </section>
+
+    <section class="card">
+      <h2>Sample cURL</h2>
+      <pre>curl -X POST "https://nutraacs.com/api/common/common/get_credit_limit" \
+  -H "Content-Type: application/json" \
+  -H "x-access-token: Bearer YOUR_ACCESS_TOKEN" \
+  -d '{"strCustomerCode":"CUST001"}'</pre>
+    </section>
+
+    <section class="card">
+      <h2>Response Schema</h2>
+      <pre>{
+  "objCreditLimitDetails": {
+    "dblCreditLimitUsed": 0,
+    "dblTotalCreditLimit": 0,
+    "strAccountCode": "C0068",
+    "strAccountName": "Nucore 100",
+    "blnPartnerAccount": true,
+    "dblEmpExtraCredit": null,
+    "dblCreditBalance": 0,
+    "dblCreditUsage": null
+  }
+}</pre>
+
+      <h3>Field descriptions</h3>
+      <table>
+        <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>objCreditLimitDetails</td><td>object</td><td>Container object for credit-related values.</td></tr>
+          <tr><td>dblCreditLimitUsed</td><td>number</td><td>Total credit used (see calculation below).</td></tr>
+          <tr><td>dblTotalCreditLimit</td><td>number</td><td>Total credit available to the customer (dblCreditLimit + dblCreditLimitExtra + dblExtraCredit).</td></tr>
+          <tr><td>strAccountCode</td><td>string</td><td>Customer's account code.</td></tr>
+          <tr><td>strAccountName</td><td>string</td><td>Customer name.</td></tr>
+          <tr><td>blnPartnerAccount</td><td>boolean</td><td>True when this is an actual customer account (not an act-as account).</td></tr>
+          <tr><td>dblEmpExtraCredit</td><td>number|null</td><td>Extra credit coming from employee credit management module; may be null.</td></tr>
+          <tr><td>dblCreditBalance</td><td>number</td><td>Computed available balance as per business formula.</td></tr>
+          <tr><td>dblCreditUsage</td><td>number|null</td><td>Percentage usage of credit. Null when total credit limit is zero or undefined.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Example Response</h2>
+      <pre>{
+  "objCreditLimitDetails": {
+    "dblCreditLimitUsed": 15200.5,
+    "dblTotalCreditLimit": 50000,
+    "strAccountCode": "CUST001",
+    "strAccountName": "ACME Distribution",
+    "blnPartnerAccount": true,
+    "dblEmpExtraCredit": null,
+    "dblCreditBalance": 34800.5,
+    "dblCreditUsage": 30.399
+  }
+}</pre>
+
+      <p class="note">In this example: <code>dblCreditUsage</code> = ((50000 - 34800.5)/50000)*100 = ~30.399%.</p>
+    </section>
+
+    <section class="card">
+      <h2>Edge cases &amp; notes</h2>
+      <ul>
+        <li>If any numeric input is <code>null</code> or <code>undefined</code>, backend treats it as <code>0</code> unless the field is explicitly nullable (like <code>dblEmpExtraCredit</code>).</li>
+        <li>When <code>dblTotalCreditLimit</code> is zero, <code>dblCreditUsage</code> will be <code>null</code> to avoid division by zero.</li>
+        <li><strong>Business rule lock:</strong> The credit balance formula is controlled by Neraaj. Consult before modifying.</li>
+        <li>If <code>dblEmpExtraCredit</code> is present, it is returned as-is but is not automatically added to <code>dblTotalCreditLimit</code> unless the business requires — check implementation if you expect employee credit to increase total limit.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Troubleshooting</h2>
+      <p>If you get unexpected values:</p>
+      <ol>
+        <li>Confirm the input <code>strCustomerCode</code> is correct and exists in customer master.</li>
+        <li>Check whether <code>dblLockedMatchedAmt</code> or other internal fields are missing from logs — these can shift the balance.</li>
+        <li>Confirm latest ledger sync: sometimes pending invoices or refunds may not be posted yet.</li>
+        <li>Inspect server logs for numeric parsing errors or unexpected <code>null</code> values.</li>
+      </ol>
+    </section>
+    
+    <section class="card">
+      <h2>Calculation Logic (exact)</h2>
+
+      <h3>1. Total Credit Limit</h3>
+      <pre>// total credit limit for the customer
+const dblTotalCreditLimit = dblCreditLimit + dblCreditLimitExtra + dblExtraCredit;</pre>
+
+      <h3>2. Total Credit Used</h3>
+      <pre>// Calculate total credit used by adding invoiced amounts, pending invoices, subtracting refunds
+const dblCreditLimitUsed =
+  dblTotalInvoiced + dblTotalpendingInvoiced + Number(dblCustSaleAmount) + dblPdcAmount - dblTotalpendingRefund;</pre>
+
+      <h3>3. Credit Balance</h3>
+      <pre>// Calculate the remaining credit balance for the customer.
+// Formula: (Total Credit - Total Debit) + Credit Limit + Extra Credit Limit + Locked Matched Amount
+const dblCreditBalance = dblTotalCredit - dblTotalDebit + dblCreditLimit + dblCreditLimitExtra + (dblLockedMatchedAmt ?? 0);
+
+/*
+ - dblTotalCredit: Total credit transactions for the account
+ - dblTotalDebit: Total debit transactions for the account
+ - dblCreditLimit: Standard credit limit assigned to the account
+ - dblCreditLimitExtra: Any extra credit limit assigned
+ - dblLockedMatchedAmt: Amount that is locked/matched (optional)
+*/</pre>
+
+      <h3>4. Credit Usage Percentage</h3>
+      <pre>// Calculate the percentage of credit usage.
+// Formula: ((Total Credit Limit - Credit Balance) / Total Credit Limit) * 100
+const dblCreditUsage = ((dblTotalCreditLimit - dblCreditBalance) / dblTotalCreditLimit) * 100;
+
+// NOTE: If dblTotalCreditLimit is 0 or null, dblCreditUsage should be set to null to avoid division by zero.</pre>
+
+      <div class="note">If <code>dblTotalCreditLimit === 0</code> then <code>dblCreditUsage</code> is <code>null</code> (or omitted) to prevent division-by-zero. Negative <code>dblCreditUsage</code> means the account has a net credit balance (i.e., credit > debit).</div>
+    </section>
+
+    <footer>
+      <small>Last updated: Aug 9, 2025 — Contact the NutraACS dev team for changes to business rules.</small>
+    </footer>
+  </div>
+</body>
+</html>
