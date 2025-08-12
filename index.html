@@ -4,8 +4,64 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NutraACS Documentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold mb-6 text-center">NutraACS Documentation</h1>
+        
+        <!-- APIs Accordion -->
+        <div class="mb-4">
+            <button class="w-full text-left bg-blue-500 text-white p-4 rounded-lg focus:outline-none hover:bg-blue-600 transition duration-300" 
+                    onclick="toggleAccordion('api-content')">
+                <span class="text-lg font-semibold">APIs</span>
+                <svg class="w-6 h-6 inline-block float-right transform transition-transform duration-300" 
+                     id="api-arrow" 
+                     fill="none" 
+                     stroke="currentColor" 
+                     viewBox="0 0 24 24" 
+                     xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+            <div id="api-content" class="hidden mt-2 bg-white rounded-lg shadow-md p-4">
+                <ul class="list-disc pl-6">
+                    <li><a href="https://n00rs.github.io/nutraacs-API-documentation/get_credit_limit" class="text-blue-600 hover:underline">Get Credit Limit</a></li>
+                    <!-- Add more API links here as needed -->
+                </ul>
+            </div>
+        </div>
+
+        <!-- Modules Accordion -->
+        <div>
+            <button class="w-full text-left bg-green-500 text-white p-4 rounded-lg focus:outline-none hover:bg-green-600 transition duration-300" 
+                    onclick="toggleAccordion('module-content')">
+                <span class="text-lg font-semibold">Modules</span>
+                <svg class="w-6 h-6 inline-block float-right transform transition-transform duration-300" 
+                     id="module-arrow" 
+                     fill="none" 
+                     stroke="currentColor" 
+                     viewBox="0 0 24 24" 
+                     xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+            <div id="module-content" class="hidden mt-2 bg-white rounded-lg shadow-md p-4">
+                <ul class="list-disc pl-6">
+                    <li><a href="https://n00rs.github.io/nutraacs-API-documentation/scheduler" class="text-blue-600 hover:underline">Scheduler</a></li>
+                    <!-- Add more Module links here as needed -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleAccordion(contentId) {
+            const content = document.getElementById(contentId);
+            const arrow = document.getElementById(contentId.replace('content', 'arrow'));
+            content.classList.toggle('hidden');
+            arrow.classList.toggle('rotate-180');
+        }
+    </script>
 </body>
 </html>
