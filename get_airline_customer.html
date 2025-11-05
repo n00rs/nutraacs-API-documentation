@@ -1,0 +1,49 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NutraACS Integration Guide – Get Customers API</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 40px; color: #333; }
+  h1 { font-size: 22px; margin: 0 0 4px 0; }
+  p.lead { color: #333; margin: 4px 0 14px 0; }
+  code, pre { background-color: #f4f4f4; padding: 0px; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+  th { background-color: #f0f0f0; }
+</style>
+</head>
+<body>
+
+<h1>NutraACS Integration Guide – Get Customers API</h1>
+
+<p>This API allows Ethiopian Airlines to retrieve all customer codes linked to their airline integration within <b>NutraACS</b>.</p>
+
+<h2>1. API Endpoint</h2>
+<p><b>POST</b> <code>/api/tenancy/tenancy/get_customers</code></p>
+
+<h2>2. Example Request</h2>
+<pre><code>{
+  "intAirline": 555
+}</code></pre>
+
+<h2>3. Example Responses</h2>
+<h3>✅ Success</h3>
+<pre><code>[
+  {
+    "strCustomerCode": "IN0098",
+    "strCustomerName": "noorsha"
+  }
+]</code></pre>
+
+<h3>❌ Error Responses</h3>
+<table>
+<tr><th>Scenario</th><th>Status Code</th><th>Example Response</th></tr>
+<tr><td>Airline ID not provided</td><td>400</td><td><code>{ "errCommon": [{"strMessage": "AIRLINE_CODE_MISSING"}] }</code></td></tr>
+<tr><td>Invalid airline code</td><td>400</td><td><code>{ "errCommon": [{"strMessage": "INVALID_AIRLINE_CODE"}] }</code></td></tr>
+<tr><td>No customers found</td><td>400</td><td><code>{ "errCommon": [{"strMessage": "NO_CUSTOMER_FOUND_FOR_ETHIOPIAN_AIRLINE_INTEGRATION"}] }</code></td></tr>
+</table>
+
+</body>
+</html>

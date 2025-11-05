@@ -44,7 +44,7 @@
       <tbody>
         <tr><td><code>strUserName</code></td><td>string</td><td>Registered integration username provided by Nucore</td></tr>
         <tr><td><code>strPassword</code></td><td>string</td><td>Password associated with the integration user</td></tr>
-        <tr><td><code>authType</code></td><td>number</td><td>Use <code>111</code> for API integrations (<em>API_INTEGRATION</em>)</td></tr>
+        <tr><td><code>authType</code></td><td>string</td><td>Use <code>API_INTEGRATION</code> for API integrations </td></tr>
         <tr><td><code>strCustomerCode</code></td><td>string</td><td>Customer code retrieved from <code>/api/tenancy/tenancy/get_customers</code></td></tr>
         <tr><td><code>strApplicationCode</code></td><td>string</td><td>Application code (e.g., <code>LITE</code>)</td></tr>
       </tbody>
@@ -54,9 +54,9 @@
   <section>
     <h2>4. Example Request</h2>
     <pre>{
-  "strUserName": "muhsin+11@nucore.in",
-  "strPassword": "Test@321a",
-  "authType": 111,
+  "strUserName": "dev_jon@ethiopiaairlince.com",
+  "strPassword": "D@v&q1W2E3",
+  "authType": "API_INTEGRATION",
   "strCustomerCode": "ABA001",
   "strApplicationCode": "LITE"
 }</pre>
