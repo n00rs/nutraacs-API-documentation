@@ -22,22 +22,33 @@
 
 <h2>1. API Endpoint</h2>
 <p><b>POST</b> <code>/api/tenancy/tenancy/get_customers</code></p>
-
+  <section>
+    <h2>3. Request Details</h2>
+    <table>
+      <thead>
+        <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>strVendorCode</code></td><td>string</td><td>The unique vendor code assigned to the integrated partner (e.g., airline, GDS, or other third-party system).</td></tr>
+      </tbody>
+    </table>
+  </section>
 <h2>2. Example Request</h2>
 <pre><code>{
-  "intAirline": 555
+  "strVendorCode": "ETA"
 }</code></pre>
 
 <h2>3. Example Responses</h2>
+<p>If the request is valid and customers are linked with the vendor, the API returns a list of customer codes and names.</p>
 <h3>✅ Success</h3>
 <pre><code>[
   {
     "strCustomerCode": "IN0098",
-    "strCustomerName": "JANE"
+    "strCustomerName": "TripTastic"
   },
   {
     "strCustomerCode": "IN0178",
-    "strCustomerName": "JON"
+    "strCustomerName": "Nomadic Adventure Co"
   }
 ]</code></pre>
 
@@ -51,3 +62,4 @@
 
 </body>
 </html>
+
