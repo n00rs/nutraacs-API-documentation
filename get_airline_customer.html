@@ -35,7 +35,7 @@
   </section>
 <h2>2. Example Request</h2>
 <pre><code>{
-  "strVendorCode": "ETA"
+  "strVendorCode": "vendorcode"
 }</code></pre>
 
 <h2>3. Example Responses</h2>
@@ -55,8 +55,8 @@
 <h3>❌ Error Responses</h3>
 <table>
 <tr><th>Scenario</th><th>Status Code</th><th>Example Response</th></tr>
-<tr><td>Airline ID not provided</td><td>400</td><td><code>{ "errCommon": [{"strMessage": "AIRLINE_CODE_MISSING"}] }</code></td></tr>
-<tr><td>Invalid airline code</td><td>400</td><td><code>{ "errCommon": [{"strMessage": "INVALID_AIRLINE_CODE"}] }</code></td></tr>
+<tr><td>Airline ID not provided</td><td>400</td><td><code>{ "errCommon": [{"strMessage": "VENDOR_CODE_MISSING"}] }</code></td></tr>
+<tr><td>Invalid airline code</td><td>400</td><td><code>{ "errCommon": [{"strMessage": "INVALID_VENDOR_CODE"}] }</code></td></tr>
 <tr><td>No customers found</td><td>400</td><td><code>{ "errCommon": [{"strMessage": "NO_CUSTOMER_FOUND_FOR_ETHIOPIAN_AIRLINE_INTEGRATION"}] }</code></td></tr>
 </table>
 
