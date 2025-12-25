@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>nuTRAACS API Documentation — Refund Cancel Ticket</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin: 40px; color: #111; }
+    header { border-bottom: 1px solid #e6e6e6; padding-bottom: 12px; margin-bottom: 24px; }
+    h1 { font-size: 22px; margin: 0 0 4px 0; }
+    p.lead { color: #333; margin: 4px 0 14px 0; }
+    section { margin-bottom: 18px; }
+    pre, code { background:#f5f5f5; padding:8px; border-radius:6px; display:block; overflow:auto; }
+    table { border-collapse: collapse; width:100%; margin-top:8px; }
+    th, td { text-align:left; padding:8px; border:1px solid #eaeaea; }
+    th { background:#f8f8f8; }
+    .note { font-size:0.95em; color:#555; background:#fcfcfc; padding:10px; border-left:4px solid #2196F3; border-radius:4px; }
+    footer { font-size:0.85em; color:#666; margin-top:28px; border-top:1px solid #eee; padding-top:12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>nuTRAACS API Documentation — Refund Cancel Ticket</h1>
+    <p class="lead">Instructions to query refund or cancellation details for a ticket using the NutraACS API.</p>
+  </header>
+
+  <section>
+    <h2>1. Overview</h2>
+    <p>
+      This document explains how to use the <strong>Refund Cancel Ticket API</strong> in the NutraACS system.
+      The API allows users to query refund or cancellation details for a specific ticket.
+    </p>
+  </section>
+
+  <section>
+    <h2>2. API Endpoint</h2>
+    <p><strong>PUT</strong> <code>https://nutraacs.com/api/voucher/ticket/refund_cancel_ticket_query</code></p>
+  </section>
+
+  <section>
+    <h2>3. Headers</h2>
+    <pre>X-access-token: Bearer &lt;access_token&gt;</pre>
+    <p class="note">Replace <code>&lt;access_token&gt;</code> with a valid authentication token.</p>
+  </section>
+
+  <section>
+    <h2>4. Request Payload</h2>
+    <pre>{
+  "strTicketNumber": "8478486541",
+  "strTicketSource": "THIRD_PARTY"
+}</pre>
+
+    <table>
+      <thead>
+        <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>strTicketNumber</code></td>
+          <td>string</td>
+          <td>The ticket number for which refund or cancellation details are requested.</td>
+        </tr>
+        <tr>
+          <td><code>strTicketSource</code></td>
+          <td>string</td>
+          <td>Identifies the source system making the request (for example: <code>THIRD_PARTY</code>).</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>5. Example Request</h2>
+    <pre>curl -X PUT \
+  https://staging-nutraacs.traacs.co/api/voucher/ticket/refund_cancel_ticket_query \
+  -H "Content-Type: application/json" \
+  -H "X-access-token: Bearer &lt;access_token&gt;" \
+  -d '{
+    "strTicketNumber": "8478486541",
+    "strTicketSource": "THIRD_PARTY"
+  }'</pre>
+  </section>
+
+  <section>
+    <h2>6. Notes</h2>
+    <ul>
+      <li>Ensure that the <code>strTicketNumber</code> exists in the system before querying.</li>
+      <li>A valid access token is required; otherwise, the request will be rejected.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>7. Response</h2>
+    <p>
+      The API returns refund or cancellation information associated with the provided ticket number.
+      The response structure may vary depending on ticket type, status, and workflow.
+    </p>
+  </section>
+
+  <footer>
+    <p>Prepared for NutraACS users — Refund &amp; Cancellation API</p>
+  </footer>
+</body>
+</html>
