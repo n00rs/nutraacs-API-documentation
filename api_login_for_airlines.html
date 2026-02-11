@@ -68,9 +68,11 @@
     <h3>Success</h3>
     <p><strong>HTTP 200 OK</strong></p>
     <pre>{
-  "strAccessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdHJVc2VyTmFtZSI6Im.."
+  "strAccessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdHJVc2VyTmFtZSI6Im..",
+  "strSaveTicketUrl":"https://nutraacs.com/api/common_api_integration/create_or_update_ticket_from_tms"
 }</pre>
-    <p class="note">Use the <code>strAccessToken</code> as a Bearer token in the <code>Authorization</code> header for subsequent NutraACS API calls.</p>
+    <p class="note">Use the <code>strSaveTicketUrl</code> as the endpoint for subsequent API calls.</p>
+    <p class="note">Use the <code>strAccessToken</code> as a Bearer token in the <code>Authorization</code> header for subsequent API calls.</p>
 
     <h3>Errors</h3>
     <table>
