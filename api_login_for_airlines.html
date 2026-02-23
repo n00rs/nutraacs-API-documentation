@@ -69,10 +69,12 @@
     <p><strong>HTTP 200 OK</strong></p>
     <pre>{
   "strAccessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdHJVc2VyTmFtZSI6Im..",
-  "strSaveTicketUrl":"https://nutraacs.com/api/common_api_integration/create_or_update_ticket_from_tms"
+  "strSaveTicketUrl":"https://nutraacs.com/api/common_api_integration/create_or_update_ticket_from_tms",
+  "strCancelRefundTicketUrl":"https://nutraacs.com/api/voucher/ticket/refund_cancel_ticket_query"
 }</pre>
-    <p class="note">Use the <code>strSaveTicketUrl</code> as the endpoint for subsequent API calls.</p>
-    <p class="note">Use the <code>strAccessToken</code> as a Bearer token in the <code>Authorization</code> header for subsequent API calls.</p>
+<p class="note">Use the <code>strSaveTicketUrl</code> as the endpoint for saving third-party tickets in subsequent API calls.</p>
+<p class="note">Use the <code>strCancelRefundTicketUrl</code> as the endpoint for canceling refund tickets in subsequent API calls.</p>
+<p class="note">Use the <code>strAccessToken</code> as a Bearer token in the <code>Authorization</code> header for all subsequent API calls.</p>
 
     <h3>Errors</h3>
     <table>
