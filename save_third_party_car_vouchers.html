@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NutraACS Integration Guide – Save Third Party Car Vouchers API</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 40px; color: #333; line-height: 1.6; }
+  h1 { font-size: 22px; margin: 0 0 4px 0; }
+  h2 { font-size: 18px; margin-top: 30px; border-bottom: 2px solid #e0e0e0; padding-bottom: 4px; }
+  h3 { font-size: 15px; margin-top: 20px; color: #444; }
+  h4 { font-size: 13px; margin-top: 14px; color: #555; }
+  p.lead { color: #333; margin: 4px 0 14px 0; }
+  code { background-color: #f4f4f4; padding: 1px 4px; border-radius: 3px; font-size: 13px; }
+  pre { background-color: #f4f4f4; padding: 14px; border-radius: 6px; overflow-x: auto; font-size: 13px; border-left: 4px solid #ccc; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+  th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background-color: #f0f0f0; font-weight: bold; }
+  tr:nth-child(even) { background-color: #fafafa; }
+  .badge-req  { background: #fdecea; color: #c0392b; border-radius: 3px; padding: 1px 6px; font-size: 11px; font-weight: bold; }
+  .badge-opt  { background: #eafaf1; color: #27ae60; border-radius: 3px; padding: 1px 6px; font-size: 11px; }
+  .badge-cond { background: #fef9e7; color: #d35400; border-radius: 3px; padding: 1px 6px; font-size: 11px; }
+  .note { background: #eaf4fb; border-left: 4px solid #3498db; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 13px; }
+  .warn { background: #fef9e7; border-left: 4px solid #f39c12; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 13px; }
+  .toc { background: #f8f8f8; border: 1px solid #ddd; padding: 14px 20px; border-radius: 6px; display: inline-block; margin-bottom: 20px; }
+  .toc ul { margin: 0; padding-left: 20px; }
+  .toc li { margin: 3px 0; }
+  .toc a { text-decoration: none; color: #2980b9; }
+  .toc a:hover { text-decoration: underline; }
+  .section-label { font-size: 11px; text-transform: uppercase; color: #888; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<h1>NutraACS Integration Guide – Save Third Party Car Vouchers API</h1>
+<p class="lead">This API allows third-party providers (e.g. car rental platforms, GDS systems, OTA portals) to push car rental voucher transactions directly into <b>NutraACS</b> for both Sale and Refund processing.</p>
+
+<div class="toc">
+  <b>Contents</b>
+  <ul>
+    <li><a href="#endpoint">1. API Endpoint</a></li>
+    <li><a href="#request-structure">2. Request Structure</a></li>
+    <li><a href="#top-level">3. Top-Level Fields</a></li>
+    <li><a href="#voucher-fields">4. Voucher Object Fields</a>
+      <ul>
+        <li><a href="#master-fields">4a. Master Fields</a></li>
+        <li><a href="#details-fields">4b. Details Fields (objDetails)</a></li>
+        <li><a href="#remarks-fields">4c. GDS Remarks &amp; Transactional Remarks</a></li>
+        <li><a href="#dimension-fields">4d. Dimension Codes</a></li>
+      </ul>
+    </li>
+    <li><a href="#payment-info">5. Payment Info (objPaymentInfo)</a></li>
+    <li><a href="#validations">6. Validations</a></li>
+    <li><a href="#examples">7. Example Request</a></li>
+    <li><a href="#responses">8. Responses</a></li>
+  </ul>
+</div>
+
+<!-- ===== ENDPOINT ===== -->
+<h2 id="endpoint">1. API Endpoint</h2>
+<p><b>POST</b> <code>/api/voucher/car/save_third_party_car_vouchers</code></p>
+<p><b>Content-Type:</b> <code>application/json</code></p>
+
+<!-- ===== REQUEST STRUCTURE ===== -->
+<h2 id="request-structure">2. Request Structure</h2>
+<pre><code>{
+  "strProviderCode": "PROVIDERCODE",
+  "objPaymentInfo": { ... },
+  "arrVouchers": [
+    {
+      "strVoucherNo": "CV25003",
+      "strTransactionType": "SALE",
+      "strVoucherStatus": "I",
+      ...
+      "objDetails": { ... },
+      "objGdsRemarks": { ... },
+      "objTransactionalRemarks": { ... }
+    }
+  ]
+}</code></pre>
+
+<!-- ===== TOP-LEVEL FIELDS ===== -->
+<h2 id="top-level">3. Top-Level Fields</h2>
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>strProviderCode</code></td>
+      <td>string</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>The unique vendor/provider code identifying the third-party system (e.g. <code>"NUFLIGHTS"</code>). Must be pre-registered in NutraACS.</td>
+    </tr>
+    <tr>
+      <td><code>arrVouchers</code></td>
+      <td>array</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>Array of one or more car voucher objects to import. Each object represents a single rental transaction (Sale or Refund). See <a href="#voucher-fields">Section 4</a> for field details.</td>
+    </tr>
+    <tr>
+      <td><code>objPaymentInfo</code></td>
+      <td>object</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Payment details for invoicing the batch. When provided, all successfully saved vouchers are automatically invoiced. See <a href="#payment-info">Section 5</a>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ===== VOUCHER FIELDS ===== -->
+<h2 id="voucher-fields">4. Voucher Object Fields</h2>
+
+<div class="note">
+  Each element in <code>arrVouchers</code> represents one car rental transaction. Fields are split into root-level identifiers, <b>Master</b> (rental &amp; booking info) and <b>Details</b> (financial data inside <code>objDetails</code>).
+</div>
+
+<h3 id="master-fields">4a. Master Fields (voucher root level)</h3>
+<p class="section-label">Rental company, location, passenger and booking information</p>
+<table>
+  <thead>
+    <tr><th width="26%">Field</th><th width="10%">Type</th><th width="10%">Required</th><th>Description &amp; Validation</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>strVoucherNo</code></td>
+      <td>string</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>Unique car voucher number (e.g. <code>"CV25003"</code>). Max 30 characters. Only letters, digits, <code>/</code> and <code>-</code> are allowed — special characters cause a validation error. Cannot be null or empty; the entire batch is rejected if any voucher is missing this field.</td>
+    </tr>
+    <tr>
+      <td><code>strTransactionType</code></td>
+      <td>string</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>Type of transaction. Accepted values: <code>"SALE"</code> or <code>"REFUND"</code> (case-sensitive). Any other value rejects the entire batch.</td>
+    </tr>
+    <tr>
+      <td><code>strVoucherStatus</code></td>
+      <td>string</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>
+        Current status of the voucher. Accepted values:
+        <ul style="margin:4px 0 0 0; padding-left:18px;">
+          <li><code>"I"</code> or <code>"ISSUE"</code> — Issued (use with <code>SALE</code>)</li>
+          <li><code>"R"</code> or <code>"REFUND"</code> — Refunded (use with <code>REFUND</code>)</li>
+          <li><code>"V"</code> or <code>"VOID"</code> — Voided (use with <code>REFUND</code>)</li>
+        </ul>
+        The status must be consistent with <code>strTransactionType</code>: Issue status only for SALE; Refund/Void status only for REFUND. Mismatch causes a per-voucher error.
+      </td>
+    </tr>
+    <tr>
+      <td><code>strCarRentalCompany</code></td>
+      <td>string</td>
+      <td><span class="badge-cond">Cond.</span></td>
+      <td>Rental company name as registered in NutraACS. For third-party requests, either <code>strCarRentalCompany</code> (name) or <code>strCarRentalCompanyCode</code> (code) must be provided. If neither is sent, a validation error is raised.</td>
+    </tr>
+    <tr>
+      <td><code>strCarRentalCompanyCode</code></td>
+      <td>string</td>
+      <td><span class="badge-cond">Cond.</span></td>
+      <td>Rental company code as registered in NutraACS (e.g. <code>"R0001"</code>). Used for third-party resolution when <code>strCarRentalCompany</code> is not provided. One of the two must be present.</td>
+    </tr>
+    <tr>
+      <td><code>strCountry</code></td>
+      <td>string</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>Country name where the car is rented (e.g. <code>"Germany"</code>). Must match an active country configured in NutraACS. Used to determine domestic vs. international status.</td>
+    </tr>
+    <tr>
+      <td><code>strCity</code></td>
+      <td>string</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>City name where the car is rented (e.g. <code>"Berlin"</code>). Must match an active city in NutraACS and must belong to the provided <code>strCountry</code>. Mismatch causes a validation error.</td>
+    </tr>
+    <tr>
+      <td><code>strPaxName</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Name of the primary renter/passenger (e.g. <code>"ARYANANDA"</code>).</td>
+    </tr>
+    <tr>
+      <td><code>strPnrNumber</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>GDS PNR / booking reference number. Max 15 characters.</td>
+    </tr>
+    <tr>
+      <td><code>strGdsCompany</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>
+        GDS platform used to book the car rental. Max 20 characters. Accepted values (case-insensitive):
+        <code>AMADEUS</code>, <code>GALILEO</code>, <code>SABRE</code>, <code>WORLDSPAN</code>, <code>FARELOGIX</code>, <code>ONLINE</code>, <code>LCC</code>, <code>AIRLINE</code>, <code>OTHER</code>.
+        Defaults to <code>"Other"</code> if not provided. The value is title-cased before saving.
+      </td>
+    </tr>
+    <tr>
+      <td><code>strCarConfirmNo</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Car rental company's confirmation number. Max 50 characters. Must be unique — duplicate confirmation numbers across the system are rejected with an error.</td>
+    </tr>
+    <tr>
+      <td><code>strSupplierConfirmNo</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Supplier's booking confirmation number. Max 50 characters. Must be unique — duplicate supplier confirmation numbers are rejected.</td>
+    </tr>
+    <tr>
+      <td><code>strBookingStaffId</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Staff code of the booking agent. Resolved to the staff account in NutraACS. If not provided for a THIRD_PARTY request, <code>strBookingStaffEmail</code> is used as a fallback.</td>
+    </tr>
+    <tr>
+      <td><code>strBookingStaffEmail</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Email of the booking agent. Used as a fallback lookup when <code>strBookingStaffId</code> is absent (THIRD_PARTY source only).</td>
+    </tr>
+    <tr>
+      <td><code>strBookingDetails</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Free-text booking details or notes. Max 500 characters.</td>
+    </tr>
+    <tr>
+      <td><code>strRentingStation</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Pick-up/renting station name or code (e.g. airport branch, city office). Max 100 characters.</td>
+    </tr>
+    <tr>
+      <td><code>strDropStation</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Drop-off station name or code. Max 100 characters.</td>
+    </tr>
+    <tr>
+      <td><code>strCategory</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Car category code or name (e.g. <code>"ECONOMY"</code>, <code>"SUV"</code>). Max 100 characters.</td>
+    </tr>
+    <tr>
+      <td><code>strCarVehicle</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Vehicle make/brand name (e.g. <code>"Citroen"</code>).</td>
+    </tr>
+    <tr>
+      <td><code>strCarModel</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Vehicle model name (e.g. <code>"C5"</code>).</td>
+    </tr>
+    <tr>
+      <td><code>datStart</code></td>
+      <td>string (date)</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Car rental start date. Format: <code>"DD/MM/YYYY"</code> or <code>"YYYY-MM-DD"</code>.</td>
+    </tr>
+    <tr>
+      <td><code>datEnd</code></td>
+      <td>string (date)</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Car rental end date. Same format as <code>datStart</code>. Must be on or after <code>datStart</code>.</td>
+    </tr>
+    <tr>
+      <td><code>strCustomerEmpNo</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Customer employee number. Used for corporate billing cross-referencing.</td>
+    </tr>
+    <tr>
+      <td><code>strAdditionalReference</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Additional reference text attached to the voucher (e.g. internal reference, approval code). Max 200 characters.</td>
+    </tr>
+    <tr>
+      <td><code>strTermsAndConditions</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Terms and conditions text to be stored against the voucher.</td>
+    </tr>
+    <tr>
+      <td><code>strRegionCode</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Tax region code. Used to apply the correct tax rules. If not provided, region is auto-determined from <code>strCountry</code> (domestic vs. international relative to the company's country).</td>
+    </tr>
+    <tr>
+      <td><code>strPickUpTerminal</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Airport terminal or location identifier for vehicle pick-up.</td>
+    </tr>
+    <tr>
+      <td><code>strPickUpFlightNo</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Incoming flight number at pick-up location (used for coordination).</td>
+    </tr>
+    <tr>
+      <td><code>strPickUpAirline</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Airline code/name for the incoming flight at pick-up.</td>
+    </tr>
+    <tr>
+      <td><code>datPickUp</code></td>
+      <td>string (date)</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Scheduled pick-up date. Format: <code>"DD/MM/YYYY"</code> or <code>"YYYY-MM-DD"</code>.</td>
+    </tr>
+    <tr>
+      <td><code>strDropOffTerminal</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Airport terminal or location identifier for vehicle drop-off.</td>
+    </tr>
+    <tr>
+      <td><code>strDropOffFlightNo</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Outbound flight number at drop-off (used for coordination).</td>
+    </tr>
+    <tr>
+      <td><code>strDropOffAirline</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Airline code/name for the outbound flight at drop-off.</td>
+    </tr>
+    <tr>
+      <td><code>datDropOff</code></td>
+      <td>string (date)</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Scheduled drop-off date. Format: <code>"DD/MM/YYYY"</code> or <code>"YYYY-MM-DD"</code>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="details-fields">4b. Details Fields (<code>objDetails</code>)</h3>
+<p class="section-label">Financial, rate, supplier and customer data</p>
+
+<div class="note">
+  All amount fields should be provided as numbers or numeric strings. Currency amounts must align with their corresponding currency fields (<code>strSupplierCurrency</code> / <code>strCustomerCurrency</code>). Empty string <code>""</code> is treated as zero/not provided.
+</div>
+
+<table>
+  <thead>
+    <tr><th width="28%">Field</th><th width="10%">Type</th><th width="10%">Required</th><th>Description &amp; Validation</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>datIssue</code></td>
+      <td>string (date)</td>
+      <td><span class="badge-cond">Cond.</span></td>
+      <td><b>Required when <code>strTransactionType</code> is <code>"SALE"</code>.</b> The voucher issue date. Format: <code>"DD/MM/YYYY"</code>. Also accepted: <code>"YYYY-MM-DD"</code>. For REFUND transactions, <code>datRefund</code> is used instead.</td>
+    </tr>
+    <tr>
+      <td><code>datRefund</code></td>
+      <td>string (date)</td>
+      <td><span class="badge-cond">Cond.</span></td>
+      <td><b>Required when <code>strTransactionType</code> is <code>"REFUND"</code>.</b> The refund processing date. Must be on or after the original issue date of the sale voucher if one exists in the system. Same date format as <code>datIssue</code>.</td>
+    </tr>
+    <tr>
+      <td><code>strNoOfDays</code></td>
+      <td>string / number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Number of rental days (e.g. <code>"3"</code>). Used together with <code>strRatePerDay</code> for fare calculation and display.</td>
+    </tr>
+    <tr>
+      <td><code>strNoOfCars</code></td>
+      <td>string / number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Number of cars rented under this voucher (e.g. <code>"1"</code>).</td>
+    </tr>
+    <tr>
+      <td><code>strRatePerDay</code></td>
+      <td>string / number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Daily rental rate per car in supplier currency. Defaults to <code>"0"</code> if not provided.</td>
+    </tr>
+    <tr>
+      <td><code>strTaxPerDay</code></td>
+      <td>string / number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Daily tax amount per car in supplier currency. Defaults to <code>"0"</code> if not provided.</td>
+    </tr>
+    <tr>
+      <td><code>strBranch</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Branch code where the voucher is posted (e.g. <code>"MAIN"</code>, <code>"HO"</code>). Must match an active branch in NutraACS. Optional for THIRD_PARTY source.</td>
+    </tr>
+    <tr>
+      <td><code>strIssuingStaffId</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Staff code of the issuing agent. Resolved to the staff account in NutraACS. Optional for THIRD_PARTY — falls back to <code>strIssuingStaffEmail</code> if absent.</td>
+    </tr>
+    <tr>
+      <td><code>strIssuingStaffEmail</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Email of the issuing agent. Used as a fallback lookup when <code>strIssuingStaffId</code> is absent (THIRD_PARTY source only).</td>
+    </tr>
+    <tr>
+      <td><code>strSupplier</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Supplier account code in NutraACS (the car rental supplier billed by the agency). Must be an active supplier account.</td>
+    </tr>
+    <tr>
+      <td><code>strSupplierCurrency</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>ISO 4217 currency code for all supplier-side amounts (e.g. <code>"USD"</code>, <code>"AED"</code>, <code>"INR"</code>). Must be configured in NutraACS.</td>
+    </tr>
+    <tr>
+      <td><code>dblSupplierROE</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Supplier Rate of Exchange — conversion rate from supplier currency to the system base currency.</td>
+    </tr>
+    <tr>
+      <td><code>dblPublishedFare</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Published (rack) rental fare in supplier currency before taxes. Also accepted via <code>dblSupplierDebit</code> / <code>dblSupplierCredit</code> if this field is zero.</td>
+    </tr>
+    <tr>
+      <td><code>dblMarketFare</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Negotiated/market rental fare in supplier currency.</td>
+    </tr>
+    <tr>
+      <td><code>dblMarketFareCardAmount</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Portion of market fare charged to a corporate card.</td>
+    </tr>
+    <tr>
+      <td><code>dblTax</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Total tax amount on the rental in supplier currency.</td>
+    </tr>
+    <tr>
+      <td><code>dblTaxCardAmount</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Portion of tax charged to a card.</td>
+    </tr>
+    <tr>
+      <td><code>strTaxDetails</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Raw tax breakdown string as provided by the supplier. Max 250 characters.</td>
+    </tr>
+    <tr>
+      <td><code>dblSupplierCommission1</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Standard commission amount from the supplier (maps to <code>dblStdCommission</code>).</td>
+    </tr>
+    <tr>
+      <td><code>dblSupplierCommission2</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>PLB (Performance Linked Bonus) commission from the supplier (maps to <code>dblPlbCommission</code>).</td>
+    </tr>
+    <tr>
+      <td><code>dblInputTax</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Input (recoverable) tax on supplier charges (e.g. GST input credit).</td>
+    </tr>
+    <tr>
+      <td><code>dblOtherInputTax</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Any additional input tax not covered by <code>dblInputTax</code>.</td>
+    </tr>
+    <tr>
+      <td><code>dblSupplierFee</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Processing/service fee charged by the supplier to the agency.</td>
+    </tr>
+    <tr>
+      <td><code>dblSupplierFeeTax</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Tax applied on the supplier fee.</td>
+    </tr>
+    <tr>
+      <td><code>dblSupplierCharge</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Additional supplier-imposed charge (e.g. early return fee, credit card surcharge).</td>
+    </tr>
+    <tr>
+      <td><code>dblSupplierChargeCard</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Portion of the supplier charge paid by card.</td>
+    </tr>
+    <tr>
+      <td><code>dblIgst</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Integrated GST (India — inter-state transactions).</td>
+    </tr>
+    <tr>
+      <td><code>dblSgst</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>State GST (India — intra-state transactions).</td>
+    </tr>
+    <tr>
+      <td><code>dblCgst</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Central GST (India — intra-state transactions).</td>
+    </tr>
+    <tr>
+      <td><code>dblOutputIgst</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Output IGST charged to the customer (India — inter-state).</td>
+    </tr>
+    <tr>
+      <td><code>dblOutputSgst</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Output SGST charged to the customer (India — intra-state).</td>
+    </tr>
+    <tr>
+      <td><code>dblOutputCgst</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Output CGST charged to the customer (India — intra-state).</td>
+    </tr>
+    <tr>
+      <td><code>strCorpCardCode</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Corporate credit card account code. Used when the rental was paid partially or fully via a corporate card configured in NutraACS.</td>
+    </tr>
+    <tr>
+      <td><code>strMaskedCardNo</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Masked credit/debit card number (e.g. <code>"1347****7854"</code>). <b>Do NOT send full unmasked card numbers.</b></td>
+    </tr>
+    <tr>
+      <td><code>strCardAuthorizationCode</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Payment gateway authorization code for the card transaction (e.g. <code>"7CA79854"</code>).</td>
+    </tr>
+    <tr>
+      <td><code>strGrAccountCode</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Government Receivable (GR) account code for government-billed transactions.</td>
+    </tr>
+    <tr>
+      <td><code>strGrLpoNumber</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>LPO number associated with the GR account.</td>
+    </tr>
+    <tr>
+      <td><code>strFopElement</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Form of Payment element from the GDS PNR (e.g. <code>"CC VI4111111111111111/0125"</code>).</td>
+    </tr>
+    <tr>
+      <td><code>strCustomer</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Customer account code in NutraACS (e.g. <code>"00001"</code>). The voucher will be billed to this customer. Must be a valid, active customer account.</td>
+    </tr>
+    <tr>
+      <td><code>strCustomerCurrency</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>ISO 4217 currency code for customer-facing amounts (e.g. <code>"INR"</code>). Defaults to the customer's configured currency if not provided.</td>
+    </tr>
+    <tr>
+      <td><code>dblCustomerROE</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Rate of Exchange from customer currency to the system base currency.</td>
+    </tr>
+    <tr>
+      <td><code>strCustomerLpoOrToNumber</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Customer's LPO or Tour Order reference number. Used for corporate billing reconciliation. Max 50 characters.</td>
+    </tr>
+    <tr>
+      <td><code>datCustomerLpoDate</code></td>
+      <td>string (date)</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Date of the customer LPO. Format: <code>"DD/MM/YYYY"</code>.</td>
+    </tr>
+    <tr>
+      <td><code>dblServiceFee1</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Primary service fee charged to the customer (maps to <code>dblServiceFeeCustomer</code>).</td>
+    </tr>
+    <tr>
+      <td><code>dblServiceFee2</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Extra earning / secondary fee charged to the customer (maps to <code>dblExtraEarningCustomer</code>).</td>
+    </tr>
+    <tr>
+      <td><code>dblServiceFee3</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Additional income / tertiary fee charged to the customer (maps to <code>dblAdditionalIncomeCustomer</code>).</td>
+    </tr>
+    <tr>
+      <td><code>dblDiscount1</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Primary discount given to the customer (maps to <code>dblDiscountCustomer</code>).</td>
+    </tr>
+    <tr>
+      <td><code>dblDiscount2</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>PLB discount passed to the customer (maps to <code>dblPlbDiscountCustomer</code>).</td>
+    </tr>
+    <tr>
+      <td><code>dblDiscount3</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Additional / tertiary discount for the customer (maps to <code>dblAdditionalDiscountCustomer</code>).</td>
+    </tr>
+    <tr>
+      <td><code>dblAgencyChargeRfd</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Agency-retained cancellation/refund fee charged to the customer on refund transactions.</td>
+    </tr>
+    <tr>
+      <td><code>dblCustomerOutputTax</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Output VAT / billing tax charged to the customer on top of the selling price.</td>
+    </tr>
+    <tr>
+      <td><code>dblExpenseOutputTax</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Output tax on agency expense side (maps to <code>dblCustomerExpenseOutputTax</code>).</td>
+    </tr>
+    <tr>
+      <td><code>dblSellingPriceCustomer</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Total selling price billed to the customer in customer currency (fare + taxes + fees − discounts).</td>
+    </tr>
+    <tr>
+      <td><code>strPaybackAccount1</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>GL account code for the first payback/rebate distribution.</td>
+    </tr>
+    <tr>
+      <td><code>dblPaybackAmount1</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Amount to distribute to <code>strPaybackAccount1</code>.</td>
+    </tr>
+    <tr>
+      <td><code>strPaybackAccount2</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>GL account code for the second payback account.</td>
+    </tr>
+    <tr>
+      <td><code>dblPaybackAmount2</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Amount to distribute to <code>strPaybackAccount2</code>.</td>
+    </tr>
+    <tr>
+      <td><code>strPaybackAccount3</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>GL account code for the third payback account.</td>
+    </tr>
+    <tr>
+      <td><code>dblPaybackAmount3</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Amount to distribute to <code>strPaybackAccount3</code>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="remarks-fields">4c. GDS Remarks &amp; Transactional Remarks</h3>
+
+<h4>GDS Remarks — <code>objGdsRemarks</code></h4>
+<p>An optional key-value object for structured GDS remark capture. Each key is a GDS remark integration code configured in NutraACS for the CAR service type, and the value is the remark text. Unrecognised codes are rejected per voucher.</p>
+<pre><code>"objGdsRemarks": {
+  "STRCCNO":  "123345",
+  "TOUR_CODE": "CORP2024"
+}</code></pre>
+
+<h4>Transactional Remarks — <code>objTransactionalRemarks</code></h4>
+<p>An optional key-value object for configurable transactional remark capture. The key is the remark master <b>name</b> as configured in NutraACS and the value is the detail option's <b>code</b> or <b>name</b>.</p>
+<div class="note">
+  <b>Do NOT send primary key IDs.</b> Send the human-readable master name as the key and the detail's <code>vchr_code</code> or <code>vchr_name</code> as the value. The system resolves these to PKs internally — <code>vchr_code</code> is tried first (case-insensitive), then <code>vchr_name</code> as a fallback.
+</div>
+<pre><code>"objTransactionalRemarks": {
+  "TESTTI": "abc",
+  "TEST":   "1234"
+}</code></pre>
+<table>
+  <thead>
+    <tr><th>Validation</th><th>Error Code</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Mandatory remark master has no value supplied</td>
+      <td><code>IMPORTING_ERRORS.TRANSACTIONAL_REMARKS_MANDATORY_MISSING_{masterPk}</code></td>
+    </tr>
+    <tr>
+      <td>Master name does not exist in NutraACS</td>
+      <td><code>IMPORTING_ERRORS.INVALID_TRANSACTIONAL_REMARK_MASTER_{masterName}</code></td>
+    </tr>
+    <tr>
+      <td>Detail code/name is not a valid option for the given master</td>
+      <td><code>IMPORTING_ERRORS.INVALID_TRANSACTIONAL_REMARK_DETAIL_{masterName}</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="dimension-fields">4d. Dimension Codes</h3>
+<p>Up to three optional dimension codes can be attached per voucher. Dimension codes must match active entries configured in NutraACS. Dimensions are only applied when the corresponding dimension feature and coupon-level dimension setting are both active in the tenant configuration.</p>
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>strDimensionCodeOne</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Code for Dimension 1 (e.g. cost centre <code>"CC-001"</code>). Values are uppercased before lookup.</td>
+    </tr>
+    <tr>
+      <td><code>strDimensionCodeTwo</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Code for Dimension 2 (e.g. project code <code>"PROJ-ALPHA"</code>).</td>
+    </tr>
+    <tr>
+      <td><code>strDimensionCodeThree</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Code for Dimension 3.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ===== PAYMENT INFO ===== -->
+<h2 id="payment-info">5. Payment Info (<code>objPaymentInfo</code>)</h2>
+<p>When <code>objPaymentInfo</code> is provided, all successfully saved vouchers are automatically invoiced as a batch. If payment validation fails, no vouchers are saved and an error is returned.</p>
+<table>
+  <thead>
+    <tr><th width="26%">Field</th><th width="10%">Type</th><th width="10%">Required</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>strDocumentDate</code></td>
+      <td>string (date)</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>Invoice document date. Format: <code>"DD/MM/YYYY"</code>.</td>
+    </tr>
+    <tr>
+      <td><code>strModeOfSale</code></td>
+      <td>string</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>Mode of sale (e.g. <code>"Credit"</code>, <code>"Cash"</code>).</td>
+    </tr>
+    <tr>
+      <td><code>arrPaymentOptions</code></td>
+      <td>array</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>One or more payment option objects detailing how the invoice is to be settled. See payment option fields below.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h4>Payment Option Object (<code>arrPaymentOptions[*]</code>)</h4>
+<table>
+  <thead>
+    <tr><th width="28%">Field</th><th width="10%">Type</th><th width="10%">Required</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>intMasterCustomer</code></td>
+      <td>string / number</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>Primary key of the master customer account in NutraACS (e.g. <code>"12566"</code>).</td>
+    </tr>
+    <tr>
+      <td><code>strPaymentType</code></td>
+      <td>string</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>Payment type (e.g. <code>"Credit"</code>, <code>"Cash"</code>, <code>"Cheque"</code>, <code>"CreditCard"</code>).</td>
+    </tr>
+    <tr>
+      <td><code>strCustomerCode</code></td>
+      <td>string</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>Customer account code being invoiced (must match the voucher's customer).</td>
+    </tr>
+    <tr>
+      <td><code>strCurrency</code></td>
+      <td>string</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>ISO 4217 currency code for the payment amount.</td>
+    </tr>
+    <tr>
+      <td><code>dblTranCurDebitedAmount</code></td>
+      <td>number</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>Total amount debited/collected in the transaction currency.</td>
+    </tr>
+    <tr>
+      <td><code>dblTranCurrRoe</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Rate of exchange from transaction currency to base currency. Defaults to 1 if not provided.</td>
+    </tr>
+    <tr>
+      <td><code>intPaymentOptionPk</code></td>
+      <td>string / number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Payment option configuration PK. Leave empty for standard payment flows.</td>
+    </tr>
+    <tr>
+      <td><code>strCreditCardNo</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Credit card number (for card payment type).</td>
+    </tr>
+    <tr>
+      <td><code>strChequeNo</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Cheque number (for cheque payment type).</td>
+    </tr>
+    <tr>
+      <td><code>datPayment</code></td>
+      <td>string (date)</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Date of payment. Format: <code>"DD/MM/YYYY"</code>.</td>
+    </tr>
+    <tr>
+      <td><code>datCheque</code></td>
+      <td>string (date)</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Cheque date. Format: <code>"DD/MM/YYYY"</code>.</td>
+    </tr>
+    <tr>
+      <td><code>dblTranCurBankCharge</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Bank charge in transaction currency.</td>
+    </tr>
+    <tr>
+      <td><code>dblBaseCurBankCharge</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Bank charge converted to base currency.</td>
+    </tr>
+    <tr>
+      <td><code>objPOSDetails</code></td>
+      <td>object</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Point-of-sale terminal details (for card transactions).</td>
+    </tr>
+    <tr>
+      <td><code>strBatchNo</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Payment batch number for card reconciliation.</td>
+    </tr>
+    <tr>
+      <td><code>strCCRecoNo</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Corporate card reconciliation number.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ===== VALIDATIONS ===== -->
+<h2 id="validations">6. Validations</h2>
+
+<h3>6a. Batch-Level Validations (rejects entire request)</h3>
+<table>
+  <thead>
+    <tr><th>Rule</th><th>Error Response</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>One or more vouchers in <code>arrVouchers</code> are missing <code>strVoucherNo</code></td>
+      <td><code>{ "strMessage": "KEY_MISSING_TICKET_NUMBER" }</code></td>
+    </tr>
+    <tr>
+      <td>One or more vouchers are missing <code>strTransactionType</code></td>
+      <td><code>{ "strMessage": "KEY_MISSING_TRANSACTION_TYPE" }</code></td>
+    </tr>
+    <tr>
+      <td><code>strTransactionType</code> value is not <code>"SALE"</code> or <code>"REFUND"</code></td>
+      <td><code>{ "strMessage": "INVALID_TRANSACTION_TYPE" }</code></td>
+    </tr>
+    <tr>
+      <td><code>objPaymentInfo</code> is provided but payment validation fails</td>
+      <td><code>{ "strMessage": "ERROR_IN_PAYMENT_INFORMATION", "objDetails": { "arrMessages": [...] } }</code></td>
+    </tr>
+    <tr>
+      <td>No vouchers remain to process after validation</td>
+      <td><code>{ "strMessage": "NO_RECORD_TO_SYNC" }</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>6b. Per-Voucher Validations (reported in import result)</h3>
+<p>Failed vouchers are moved to the error list while remaining valid vouchers are still processed.</p>
+<table>
+  <thead>
+    <tr><th>Rule</th><th>Error Code</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>strVoucherNo</code> contains special characters (only <code>A-Z</code>, <code>0-9</code>, <code>/</code>, <code>-</code> allowed)</td>
+      <td><code>IMPORTING_ERRORS.INVALID_CAR_VOUCHER_NUMBER</code></td>
+    </tr>
+    <tr>
+      <td><code>strVoucherNo</code> exceeds 30 characters</td>
+      <td><code>IMPORTING_ERRORS.VOUCHER_NO_LENGTH_EXCEEDED_30_ALLOWED</code></td>
+    </tr>
+    <tr>
+      <td><code>strVoucherStatus</code> is missing</td>
+      <td><code>IMPORTING_ERRORS.KEY_MISSING_VOUCHER_STATUS</code></td>
+    </tr>
+    <tr>
+      <td><code>strVoucherStatus</code> value is not <code>I / ISSUE / R / REFUND / V / VOID</code></td>
+      <td><code>IMPORTING_ERRORS.INVALID_VOUCHER_STATUS</code></td>
+    </tr>
+    <tr>
+      <td><code>strVoucherStatus</code> does not match <code>strTransactionType</code> (e.g. status <code>R</code> with type <code>SALE</code>)</td>
+      <td><code>IMPORTING_ERRORS.TRANSACTION_TYPE_AND_VOUCHER_STATUS_NOT_MATCHING</code></td>
+    </tr>
+    <tr>
+      <td>Issue / refund date is missing</td>
+      <td><code>IMPORTING_ERRORS.KEY_MISSING_ISSUE_DATE</code></td>
+    </tr>
+    <tr>
+      <td>Issue / refund date does not match format <code>DD/MM/YYYY</code></td>
+      <td><code>IMPORTING_ERRORS.INVALID_ISSUE_DATE</code></td>
+    </tr>
+    <tr>
+      <td>Refund date is earlier than the issue date of the existing sale voucher</td>
+      <td><code>IMPORTING_ERRORS.REFUND_DATE_SHOULD_BE_GREATER_THAN_ISSUE_DATE_OF_ISSUE_COUPON</code></td>
+    </tr>
+    <tr>
+      <td>Sale voucher with the same <code>strVoucherNo</code> already exists in the system</td>
+      <td><code>IMPORTING_ERRORS.CAR_VOUCHER_ALREADY_EXISTS</code></td>
+    </tr>
+    <tr>
+      <td><code>strCarConfirmNo</code> already exists in the system</td>
+      <td><code>IMPORTING_ERRORS.RENTAL_COMPANY_CONFIRM_NO_DUPLICATE</code></td>
+    </tr>
+    <tr>
+      <td><code>strSupplierConfirmNo</code> already exists in the system</td>
+      <td><code>IMPORTING_ERRORS.SUPPLIER_CONFIRM_NO_DUPLICATE</code></td>
+    </tr>
+    <tr>
+      <td>Neither <code>strCarRentalCompany</code> nor <code>strCarRentalCompanyCode</code> is provided (third-party source)</td>
+      <td><code>IMPORTING_ERRORS.RENTAL_COMPANY_NAME_OR_CODE_REQUIRED</code></td>
+    </tr>
+    <tr>
+      <td>Rental company name/code is not found in NutraACS</td>
+      <td><code>IMPORTING_ERRORS.RENTAL_COMPANY_DOESNOT_EXIST</code></td>
+    </tr>
+    <tr>
+      <td><code>strCountry</code> is missing</td>
+      <td><code>IMPORTING_ERRORS.KEY_MISSING_COUNTRY</code></td>
+    </tr>
+    <tr>
+      <td><code>strCountry</code> is not found in NutraACS</td>
+      <td><code>IMPORTING_ERRORS.COUNTRY_DOESNOT_EXIST</code></td>
+    </tr>
+    <tr>
+      <td><code>strCity</code> is missing</td>
+      <td><code>IMPORTING_ERRORS.KEY_MISSING_CITY</code></td>
+    </tr>
+    <tr>
+      <td><code>strCity</code> is not found in NutraACS</td>
+      <td><code>IMPORTING_ERRORS.CITY_DOESNOT_EXIST</code></td>
+    </tr>
+    <tr>
+      <td><code>strCity</code> does not belong to the provided <code>strCountry</code></td>
+      <td><code>IMPORTING_ERRORS.CITY_AND_COUNTRY_NOT_MATCHING</code></td>
+    </tr>
+    <tr>
+      <td><code>strGdsCompany</code> value is not a recognised GDS type</td>
+      <td><code>IMPORTING_ERRORS.GDS_DOES_NOT_EXIST</code></td>
+    </tr>
+    <tr>
+      <td><code>strGdsCompany</code> exceeds 20 characters</td>
+      <td><code>IMPORTING_ERRORS.GDS_LENGTH_EXCEEDED_20_ALLOWED</code></td>
+    </tr>
+    <tr>
+      <td><code>strPnrNumber</code> exceeds 15 characters</td>
+      <td><code>IMPORTING_ERRORS.PNR_LENGTH_EXCEEDED_15_ALLOWED</code></td>
+    </tr>
+    <tr>
+      <td>Issuing staff code/email is not found in NutraACS</td>
+      <td><code>IMPORTING_ERRORS.ISSUING_STAFF_DOESNOT_EXIST</code></td>
+    </tr>
+    <tr>
+      <td>Booking staff code/email is not found in NutraACS</td>
+      <td><code>IMPORTING_ERRORS.BOOKING_STAFF_DOES_NOT_EXIST</code></td>
+    </tr>
+    <tr>
+      <td>Branch code is not found in NutraACS</td>
+      <td><code>IMPORTING_ERRORS.BRANCH_DOES_NOT_EXIST</code></td>
+    </tr>
+    <tr>
+      <td>Supplier currency code is not recognised</td>
+      <td><code>IMPORTING_ERRORS.INVALID_SUPPLIER_CURRENCY</code></td>
+    </tr>
+    <tr>
+      <td>Customer currency code is not recognised</td>
+      <td><code>IMPORTING_ERRORS.INVALID_CUSTOMER_CURRENCY</code></td>
+    </tr>
+    <tr>
+      <td>GDS remark integration code in <code>objGdsRemarks</code> is not configured for the CAR service</td>
+      <td><code>IMPORTING_ERRORS.INVALID_GDS_REMARK_{remarkCode}</code></td>
+    </tr>
+    <tr>
+      <td>Mandatory transactional remark master has no value provided</td>
+      <td><code>IMPORTING_ERRORS.TRANSACTIONAL_REMARKS_MANDATORY_MISSING_{masterPk}</code></td>
+    </tr>
+    <tr>
+      <td>Transactional remark master name not found in NutraACS</td>
+      <td><code>IMPORTING_ERRORS.INVALID_TRANSACTIONAL_REMARK_MASTER_{masterName}</code></td>
+    </tr>
+    <tr>
+      <td>Transactional remark detail code/name is not a valid option</td>
+      <td><code>IMPORTING_ERRORS.INVALID_TRANSACTIONAL_REMARK_DETAIL_{masterName}</code></td>
+    </tr>
+    <tr>
+      <td>Dimension code not found in NutraACS</td>
+      <td><code>IMPORTING_ERRORS.INVALID_DIMENSION_CODE_{dimensionCode}</code></td>
+    </tr>
+    <tr>
+      <td>Supplier-side fields provided but service is configured as own-service (no external supplier)</td>
+      <td><code>IMPORTING_ERRORS.OWN_SERVICE_VOCHER</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ===== EXAMPLE REQUEST ===== -->
+<h2 id="examples">7. Example Request</h2>
+<pre><code>{
+  "strProviderCode": "PROVIDERCODE",
+  "arrVouchers": [
+    {
+      "strVoucherNo": "CV25003",
+      "strTransactionType": "SALE",
+      "strVoucherStatus": "I",
+      "strCarRentalCompany": "Rental Company",
+      "strCarRentalCompanyCode": "R0001",
+      "strCity": "Berlin",
+      "strCountry": "Germany",
+      "strPnrNumber": "1911",
+      "strRegionCode": "",
+      "strGdsCompany": "Sabre",
+      "strCarConfirmNo": "",
+      "strIssuingStaffId": "08",
+      "strIssuingStaffEmail": "",
+      "strBookingStaffId": "08",
+      "strBookingStaffEmail": "",
+      "strSupplierConfirmNo": "",
+      "strBookingDetails": "Sample Booking Details",
+      "strRentingStation": "Sample Renting Station",
+      "strDropStation": "Sample Drop Station",
+      "strCustomerEmpNo": "CUSTEM",
+      "strCategory": "CATE899k",
+      "datStart": "20/11/2026",
+      "datEnd": "22/11/2026",
+      "strCarVehicle": "Citroen",
+      "strCarModel": "C5",
+      "strPaxName": "ARYANANDA",
+      "strAdditionalReference": "Sample Additional Reference",
+      "strTermsAndConditions": "Sample Terms And Conditions",
+      "strPickUpTerminal": "T3",
+      "strPickUpFlightNo": "ET 303",
+      "strPickUpAirline": "ET",
+      "datPickUp": "20/11/2026",
+      "strDropOffTerminal": "T3",
+      "strDropOffFlightNo": "ET 304",
+      "strDropOffAirline": "ET",
+      "datDropOff": "22/11/2026",
+      "strDimensionCodeOne": "CC-FINANCE",
+      "strDimensionCodeTwo": "PROJ-ALPHA",
+      "strDimensionCodeThree": "",
+      "objGdsRemarks": {
+        "STRCCNO": "123345",
+        "TOUR_CODE": "CORP2024"
+      },
+      "objTransactionalRemarks": {
+        "Trip Purpose": "Business",
+        "Approval Status": "APPROVED"
+      },
+      "objDetails": {
+        "datIssue": "01/04/2026",
+        "strNoOfDays": "2",
+        "strNoOfCars": "1",
+        "strRatePerDay": "100",
+        "strTaxPerDay": "15",
+        "strBranch": "MAIN",
+        "strIssuingStaffId": "08",
+        "strSupplier": "A0001",
+        "strSupplierCurrency": "INR",
+        "dblSupplierROE": "1",
+        "dblPublishedFare": "3000",
+        "dblMarketFare": "3000",
+        "dblTax": "",
+        "dblSupplierCommission1": "",
+        "dblInputTax": "",
+        "strCorpCardCode": "",
+        "strMaskedCardNo": "1347****7854",
+        "strCardAuthorizationCode": "7CA79854",
+        "strGrAccountCode": "",
+        "strGrLpoNumber": "",
+        "strFopElement": "",
+        "strCustomer": "00001",
+        "strCustomerCurrency": "INR",
+        "dblCustomerROE": "1",
+        "strCustomerLpoOrToNumber": "LPO-2026-001",
+        "datCustomerLpoDate": "21/12/2026",
+        "dblServiceFee1": "",
+        "dblDiscount1": "",
+        "dblSellingPriceCustomer": "3230",
+        "strPaybackAccount1": "",
+        "dblPaybackAmount1": ""
+      }
+    }
+  ],
+  "objPaymentInfo": {
+    "strDocumentDate": "01/04/2026",
+    "strModeOfSale": "Credit",
+    "arrPaymentOptions": [
+      {
+        "intPaymentOptionPk": "",
+        "intMasterCustomer": "12566",
+        "strPaymentType": "Credit",
+        "strCustomerCode": "00001",
+        "strCurrency": "INR",
+        "dblTranCurDebitedAmount": "3230",
+        "dblTranCurrRoe": "1",
+        "strCreditCardNo": "",
+        "strChequeNo": "",
+        "datPayment": "",
+        "datCheque": "",
+        "dblTranCurBankCharge": "",
+        "dblBaseCurBankCharge": "",
+        "objPOSDetails": {},
+        "strDepositorname": "",
+        "strBatchNo": "",
+        "strCCRecoNo": ""
+      }
+    ]
+  }
+}</code></pre>
+
+<!-- ===== RESPONSES ===== -->
+<h2 id="responses">8. Responses</h2>
+
+<h3>Success</h3>
+<pre><code>{
+  "Success": {
+    "Sale":   ["CV25003"],
+    "Refund": []
+  },
+  "Error": {
+    "Sale":   {},
+    "Refund": {}
+  },
+  "arrPaymentErrors": [],
+  "strDocumentNumber": "INV-2026-00123"
+}</code></pre>
+<div class="note">
+  <code>strDocumentNumber</code> is only present when <code>objPaymentInfo</code> was provided and the invoice was successfully generated.
+</div>
+
+<h3>Partial Success</h3>
+<p>Valid vouchers are saved; failed ones are listed under <code>Error</code> with reasons.</p>
+<pre><code>{
+  "Success": {
+    "Sale":   ["CV25003"],
+    "Refund": []
+  },
+  "Error": {
+    "Sale": {
+      "CV25999": [
+        "IMPORTING_ERRORS.RENTAL_COMPANY_DOESNOT_EXIST",
+        "IMPORTING_ERRORS.INVALID_SUPPLIER_CURRENCY"
+      ]
+    },
+    "Refund": {}
+  },
+  "arrPaymentErrors": []
+}</code></pre>
+
+<h3>Error Responses</h3>
+<table>
+  <thead>
+    <tr><th>Scenario</th><th>Status Code</th><th>Example Response</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Voucher number missing in one or more records</td>
+      <td>400</td>
+      <td><code>{ "strMessage": "KEY_MISSING_TICKET_NUMBER" }</code></td>
+    </tr>
+    <tr>
+      <td>Transaction type field missing</td>
+      <td>400</td>
+      <td><code>{ "strMessage": "KEY_MISSING_TRANSACTION_TYPE" }</code></td>
+    </tr>
+    <tr>
+      <td>Invalid transaction type value</td>
+      <td>400</td>
+      <td><code>{ "strMessage": "INVALID_TRANSACTION_TYPE" }</code></td>
+    </tr>
+    <tr>
+      <td>Payment information is invalid</td>
+      <td>400</td>
+      <td><code>{ "strMessage": "ERROR_IN_PAYMENT_INFORMATION", "objDetails": { "arrMessages": ["INVALID_CUSTOMER_ACCOUNT"] } }</code></td>
+    </tr>
+    <tr>
+      <td>Invalid or unregistered provider code</td>
+      <td>400</td>
+      <td><code>{ "errCommon": [{ "strMessage": "INVALID_VENDOR_CODE" }] }</code></td>
+    </tr>
+    <tr>
+      <td>No vouchers left to process after all failed validation</td>
+      <td>400</td>
+      <td><code>{ "strMessage": "NO_RECORD_TO_SYNC" }</code></td>
+    </tr>
+    <tr>
+      <td>Unhandled server error</td>
+      <td>500</td>
+      <td><code>{ "errCommon": [{ "strMessage": "INTERNAL_SERVER_ERROR" }] }</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<br>
+<hr>
+<p style="font-size:12px; color:#888;">NutraACS Integration Guide &mdash; Save Third Party Car Vouchers API &mdash; Generated April 2026</p>
+</body>
+</html>

@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NutraACS Integration Guide – Save Third Party Tickets API</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 40px; color: #333; line-height: 1.6; }
+  h1 { font-size: 22px; margin: 0 0 4px 0; }
+  h2 { font-size: 18px; margin-top: 30px; border-bottom: 2px solid #e0e0e0; padding-bottom: 4px; }
+  h3 { font-size: 15px; margin-top: 20px; color: #444; }
+  p.lead { color: #333; margin: 4px 0 14px 0; }
+  code { background-color: #f4f4f4; padding: 1px 4px; border-radius: 3px; font-size: 13px; }
+  pre { background-color: #f4f4f4; padding: 14px; border-radius: 6px; overflow-x: auto; font-size: 13px; border-left: 4px solid #ccc; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+  th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background-color: #f0f0f0; font-weight: bold; }
+  tr:nth-child(even) { background-color: #fafafa; }
+  .required { color: #c0392b; font-weight: bold; font-size: 11px; }
+  .optional { color: #27ae60; font-size: 11px; }
+  .badge-req { background: #fdecea; color: #c0392b; border-radius: 3px; padding: 1px 6px; font-size: 11px; font-weight: bold; }
+  .badge-opt { background: #eafaf1; color: #27ae60; border-radius: 3px; padding: 1px 6px; font-size: 11px; }
+  .badge-cond { background: #fef9e7; color: #d35400; border-radius: 3px; padding: 1px 6px; font-size: 11px; }
+  .note { background: #eaf4fb; border-left: 4px solid #3498db; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 13px; }
+  .warn { background: #fef9e7; border-left: 4px solid #f39c12; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 13px; }
+  .toc { background: #f8f8f8; border: 1px solid #ddd; padding: 14px 20px; border-radius: 6px; display: inline-block; margin-bottom: 20px; }
+  .toc ul { margin: 0; padding-left: 20px; }
+  .toc li { margin: 3px 0; }
+  .toc a { text-decoration: none; color: #2980b9; }
+  .toc a:hover { text-decoration: underline; }
+  .section-label { font-size: 11px; text-transform: uppercase; color: #888; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<h1>NutraACS Integration Guide – Save Third Party Tickets API</h1>
+<p class="lead">This API allows third-party providers (e.g. airlines, GDS systems, OTA platforms) to push flight ticket transactions directly into <b>NutraACS</b> for both Sale and Refund processing.</p>
+
+<div class="toc">
+  <b>Contents</b>
+  <ul>
+    <li><a href="#endpoint">1. API Endpoint</a></li>
+    <li><a href="#request-structure">2. Request Structure</a></li>
+    <li><a href="#top-level">3. Top-Level Fields</a></li>
+    <li><a href="#ticket-fields">4. Ticket Object Fields</a>
+      <ul>
+        <li><a href="#master-fields">4a. Master Fields</a></li>
+        <li><a href="#details-fields">4b. Details Fields (objDetails)</a></li>
+        <li><a href="#extras-fields">4c. Extras Fields</a></li>
+        <li><a href="#segment-fields">4d. Segment Details (arrSegmentDetails)</a></li>
+        <li><a href="#remarks-fields">4e. GDS Remarks &amp; Transactional Remarks</a></li>
+        <li><a href="#dimension-fields">4f. Dimension Codes</a></li>
+      </ul>
+    </li>
+    <li><a href="#validations">5. Validations</a></li>
+    <li><a href="#examples">6. Example Request</a></li>
+    <li><a href="#responses">7. Responses</a></li>
+  </ul>
+</div>
+
+<!-- ===== ENDPOINT ===== -->
+<h2 id="endpoint">1. API Endpoint</h2>
+<p><b>POST</b> <code>/api/voucher/ticket/save_third_party_tickets</code></p>
+<p><b>Content-Type:</b> <code>application/json</code></p>
+
+<!-- ===== REQUEST STRUCTURE ===== -->
+<h2 id="request-structure">2. Request Structure</h2>
+<pre><code>{
+  "strProviderCode": "NUFLIGHTS",
+  "objPaymentInfo": { ... },
+  "arrTickets": [
+    {
+      "strTicketNumber": "176-2345678901",
+      "strTransactionType": "SALE",
+      ...
+      "objDetails": { ... },
+      "arrSegmentDetails": [ ... ],
+      "objGdsRemarks": { ... },
+      "objTransactionalRemarks": { ... }
+    }
+  ]
+}</code></pre>
+
+<!-- ===== TOP-LEVEL FIELDS ===== -->
+<h2 id="top-level">3. Top-Level Fields</h2>
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>strProviderCode</code></td>
+      <td>string</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>The unique vendor/provider code that identifies the third-party system sending the data (e.g. <code>"NUFLIGHTS"</code>, <code>"ETHIOPIAN"</code>). Must be registered in NutraACS beforehand.</td>
+    </tr>
+    <tr>
+      <td><code>arrTickets</code></td>
+      <td>array</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>Array of one or more ticket objects to import. Each object represents a single ticket transaction (Sale or Refund). See <a href="#ticket-fields">Section 4</a> for field details.</td>
+    </tr>
+    <tr>
+      <td><code>objPaymentInfo</code></td>
+      <td>object</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Payment details applicable across the batch (e.g. bank account, payment mode). Structure defined by the tenant's payment configuration.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ===== TICKET FIELDS ===== -->
+<h2 id="ticket-fields">4. Ticket Object Fields</h2>
+
+<div class="note">
+  Each element in <code>arrTickets</code> represents one ticket. Fields are organized into: top-level identifiers, <b>Master</b> data (passenger &amp; ticket info), <b>Details</b> data (financial &amp; operational), and <b>Extras</b> (supplementary references).
+</div>
+
+<h3 id="master-fields">4a. Master Fields (ticket-level)</h3>
+<p class="section-label">Passenger, airline, and booking information</p>
+<table>
+  <thead>
+    <tr><th width="22%">Field</th><th width="10%">Type</th><th width="10%">Required</th><th>Description &amp; Validation</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>strTicketNumber</code></td>
+      <td>string</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>The airline ticket number (e.g. <code>"176-2345678901"</code>). Must be unique per transaction. The system converts this to uppercase. Cannot be null or empty — the entire batch is rejected if any ticket is missing this field.</td>
+    </tr>
+    <tr>
+      <td><code>strTransactionType</code></td>
+      <td>string</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>Indicates whether this is a new sale or a refund. Accepted values: <code>"SALE"</code> or <code>"REFUND"</code> (case-sensitive). Any other value causes the entire batch to be rejected.</td>
+    </tr>
+    <tr>
+      <td><code>strPaxName</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Passenger full name as it appears on the ticket (e.g. <code>"SMITH/JOHN MR"</code>). Multiple names can be comma-separated. Duplicates (case-insensitive) are automatically removed before saving.</td>
+    </tr>
+    <tr>
+      <td><code>strPaxType</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Passenger type code. Standard IATA codes accepted: <code>ADT</code> (Adult), <code>CHD</code> (Child), <code>INF</code> (Infant without seat), <code>INS</code> (Infant with seat), <code>UNN</code> (Unaccompanied minor).</td>
+    </tr>
+    <tr>
+      <td><code>strTicketType</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Type of document. Use <code>"EMD"</code> for Electronic Miscellaneous Documents. For EMD tickets, the <code>strRemarks</code> or <code>strSector</code> value is also stored as an EMD remark and auto-created if not present in the system.</td>
+    </tr>
+    <tr>
+      <td><code>strTicketStatus</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Current ticket status as reported by the GDS or airline (e.g. <code>"OPEN"</code>, <code>"USED"</code>, <code>"VOID"</code>).</td>
+    </tr>
+    <tr>
+      <td><code>strGdsCompany</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>GDS platform used to issue the ticket. Accepted values: <code>AMADEUS</code>, <code>GALILEO</code>, <code>SABRE</code>, <code>WORLDSPAN</code>, <code>FARELOGIX</code>. Used to resolve the correct agent codes (numeric / character) for booking and ticketing agents.</td>
+    </tr>
+    <tr>
+      <td><code>strPnrNumber</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>GDS Passenger Name Record (booking reference) number (e.g. <code>"ABC123"</code>).</td>
+    </tr>
+    <tr>
+      <td><code>datBooking</code></td>
+      <td>string (date)</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Date the booking was made. Accepts ISO 8601 format (<code>"YYYY-MM-DD"</code>) or <code>"DD/MM/YYYY"</code>.</td>
+    </tr>
+    <tr>
+      <td><code>datTravelDate</code></td>
+      <td>string (date)</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Outbound travel date. Format: <code>"YYYY-MM-DD"</code> or <code>"DD/MM/YYYY"</code>.</td>
+    </tr>
+    <tr>
+      <td><code>datReturnDate</code></td>
+      <td>string (date)</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Return travel date for round-trip tickets. Same date format as <code>datTravelDate</code>.</td>
+    </tr>
+    <tr>
+      <td><code>strClass</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Cabin class for the outbound journey (e.g. <code>"Economy"</code>, <code>"Business"</code>, <code>"First"</code>).</td>
+    </tr>
+    <tr>
+      <td><code>strClassRBD</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Reservation Booking Designator (fare class code) for the outbound journey (e.g. <code>"Y"</code>, <code>"K"</code>, <code>"B"</code>).</td>
+    </tr>
+    <tr>
+      <td><code>strReturnClass</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Cabin class for the return journey.</td>
+    </tr>
+    <tr>
+      <td><code>strReturnRBD</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>RBD (fare class code) for the return journey.</td>
+    </tr>
+    <tr>
+      <td><code>intAirlineNumericCode</code></td>
+      <td>string / number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>The 3-digit IATA numeric airline code (e.g. <code>"176"</code> for Ethiopian Airlines). Used to resolve the airline account in NutraACS.</td>
+    </tr>
+    <tr>
+      <td><code>strRegionCode</code></td>
+      <td>string</td>
+      <td><span class="badge-cond">Cond.</span></td>
+      <td>Tax region code. <b>Mandatory for EMD ticket types.</b> Used to apply the correct tax region rules to the transaction.</td>
+    </tr>
+    <tr>
+      <td><code>strOriginalIssue</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Original issue information for reissued tickets (e.g. the original ticket number or original issuance details).</td>
+    </tr>
+    <tr>
+      <td><code>strRemarks</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Free-text remarks to be attached to the ticket. For EMD tickets, this value (or <code>strSector</code> if empty) is also stored as an EMD remark.</td>
+    </tr>
+    <tr>
+      <td><code>strBookingAgentId</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Identifier of the booking agent/staff. Resolved to the agent's NutraACS account. The exact code type used (Amadeus, Galileo, etc.) is determined by <code>strGdsCompany</code>.</td>
+    </tr>
+    <tr>
+      <td><code>strBookingAgentEmail</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Email address of the booking agent. Used as an alternative lookup key if <code>strBookingAgentId</code> is not resolvable.</td>
+    </tr>
+    <tr>
+      <td><code>strConnectionTicketNumber</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Ticket number of the connecting flight ticket that this ticket is linked to.</td>
+    </tr>
+    <tr>
+      <td><code>objDimensions</code></td>
+      <td>object</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Key-value object for custom dimension metadata attached at the ticket level (e.g. cost centres, project codes). Structure defined by tenant configuration.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="details-fields">4b. Details Fields (<code>objDetails</code>)</h3>
+<p class="section-label">Financial, supplier, and customer fare data</p>
+
+<div class="note">
+  All financial amounts should be provided as numbers (or numeric strings). Currency amounts must be consistent with the corresponding currency fields (<code>strSupplierCurrency</code> / <code>strCustomerCurrency</code>).
+</div>
+
+<table>
+  <thead>
+    <tr><th width="28%">Field</th><th width="10%">Type</th><th width="10%">Required</th><th>Description &amp; Validation</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>datIssue</code></td>
+      <td>string (date)</td>
+      <td><span class="badge-cond">Cond.</span></td>
+      <td><b>Required when <code>strTransactionType</code> is <code>"SALE"</code>.</b> The ticket issue date. Format: <code>"YYYY-MM-DD"</code> or <code>"DD/MM/YYYY"</code>. Not used for refunds.</td>
+    </tr>
+    <tr>
+      <td><code>datRefund</code></td>
+      <td>string (date)</td>
+      <td><span class="badge-cond">Cond.</span></td>
+      <td><b>Required when <code>strTransactionType</code> is <code>"REFUND"</code>.</b> The date the refund was processed. Same date format as <code>datIssue</code>.</td>
+    </tr>
+    <tr>
+      <td><code>strBranch</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Branch code where the ticket is being posted. Resolved to the branch account in NutraACS. If omitted, the default branch of the customer is used.</td>
+    </tr>
+    <tr>
+      <td><code>strTicketingAgentId</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Identifier of the ticketing agent/staff who issued the ticket. Resolved using <code>strGdsCompany</code> to pick the correct code type.</td>
+    </tr>
+    <tr>
+      <td><code>strTicketingAgentEmail</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Email of the ticketing agent. Used as fallback lookup if <code>strTicketingAgentId</code> is not resolvable.</td>
+    </tr>
+    <tr>
+      <td><code>strSector</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Flight routing in sector format (e.g. <code>"DXB/BOM/DXB"</code>). For EMD tickets, used as the EMD remark text if <code>strRemarks</code> is empty. The system counts <code>/</code> separators to derive number of segments.</td>
+    </tr>
+    <tr>
+      <td><code>strLastConjunctionTicketNumber</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>The last ticket number in a conjunction ticket sequence. Presence of this field marks the ticket as a conjunction ticket.</td>
+    </tr>
+    <tr>
+      <td><code>strSupplier</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Supplier code (airline or consolidator account code in NutraACS) who issued the ticket.</td>
+    </tr>
+    <tr>
+      <td><code>strSupplierCurrency</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>ISO 4217 currency code for supplier-side amounts (e.g. <code>"USD"</code>, <code>"AED"</code>, <code>"INR"</code>). Must be configured in NutraACS.</td>
+    </tr>
+    <tr>
+      <td><code>dblSupplierROE</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Supplier Rate of Exchange — conversion rate from supplier currency to the base (system) currency. Used in fare calculations.</td>
+    </tr>
+    <tr>
+      <td><code>dblPublishedFare</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>The published (base) fare amount in supplier currency before taxes and charges.</td>
+    </tr>
+    <tr>
+      <td><code>dblMarketFare</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Market/selling fare in supplier currency (may differ from published fare due to negotiated deals).</td>
+    </tr>
+    <tr>
+      <td><code>dblMarketFareCardAmount</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Portion of the market fare paid by corporate/credit card.</td>
+    </tr>
+    <tr>
+      <td><code>dblTax</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Total airline taxes amount in supplier currency.</td>
+    </tr>
+    <tr>
+      <td><code>dblTaxCardAmount</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Portion of the tax paid by card.</td>
+    </tr>
+    <tr>
+      <td><code>strTaxDetails</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Raw tax breakdown string as provided by the GDS (e.g. <code>"YQ15.00USGB12.50"</code>).</td>
+    </tr>
+    <tr>
+      <td><code>dblSupplierCommission1</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Standard commission amount from the airline/supplier (maps to <code>dblStdCommission</code> in NutraACS).</td>
+    </tr>
+    <tr>
+      <td><code>dblSupplierCommission2</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>PLB (Performance Linked Bonus) commission amount from the airline/supplier (maps to <code>dblPlbCommission</code>).</td>
+    </tr>
+    <tr>
+      <td><code>dblAirlineCharge</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Additional airline-imposed charge (e.g. rebooking fee, change fee) in supplier currency.</td>
+    </tr>
+    <tr>
+      <td><code>dblAirlineChargeCard</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Portion of the airline charge paid by card.</td>
+    </tr>
+    <tr>
+      <td><code>dblInputTax</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Input (recoverable) tax applicable on supplier-side charges (e.g. GST input credit).</td>
+    </tr>
+    <tr>
+      <td><code>dblOtherInputTax</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Any additional input tax amounts not covered by <code>dblInputTax</code>.</td>
+    </tr>
+    <tr>
+      <td><code>dblSupplierFee</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Service/processing fee charged by the supplier to the agency.</td>
+    </tr>
+    <tr>
+      <td><code>dblSupplierFeeTax</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Tax applied on the supplier fee.</td>
+    </tr>
+    <tr>
+      <td><code>dblSupplierCharge</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Additional supplier-imposed charge on the transaction (e.g. credit card surcharge billed to agency).</td>
+    </tr>
+    <tr>
+      <td><code>dblSupplierChargeCard</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Portion of supplier charge paid by card.</td>
+    </tr>
+    <tr>
+      <td><code>dblIgst</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Integrated GST amount (applicable for Indian tax regime — inter-state transactions).</td>
+    </tr>
+    <tr>
+      <td><code>dblSgst</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>State GST amount (applicable for Indian tax regime — intra-state transactions).</td>
+    </tr>
+    <tr>
+      <td><code>dblCgst</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Central GST amount (applicable for Indian tax regime — intra-state transactions).</td>
+    </tr>
+    <tr>
+      <td><code>dblOutputIgst</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Output IGST charged to the customer (Indian GST — inter-state).</td>
+    </tr>
+    <tr>
+      <td><code>dblOutputSgst</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Output SGST charged to the customer (Indian GST — intra-state).</td>
+    </tr>
+    <tr>
+      <td><code>dblOutputCgst</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Output CGST charged to the customer (Indian GST — intra-state).</td>
+    </tr>
+    <tr>
+      <td><code>strCorpCardCode</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Corporate credit card account code in NutraACS. Used when the ticket was paid partially or fully via a corporate card.</td>
+    </tr>
+    <tr>
+      <td><code>strCustomer</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Customer account code in NutraACS (e.g. <code>"IN0098"</code>). The ticket will be billed to this customer. Must be a valid, active customer code.</td>
+    </tr>
+    <tr>
+      <td><code>strCustomerCurrency</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>ISO 4217 currency code for customer-facing amounts. Defaults to the customer's configured currency if not provided.</td>
+    </tr>
+    <tr>
+      <td><code>dblCustomerROE</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Rate of Exchange from customer currency to the system base currency. Used to calculate customer-side amounts in base currency.</td>
+    </tr>
+    <tr>
+      <td><code>dblServiceFee1</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Primary service fee charged to the customer (maps to <code>dblServiceFeeCustomer</code>).</td>
+    </tr>
+    <tr>
+      <td><code>dblServiceFee2</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Extra earning / secondary service fee charged to the customer (maps to <code>dblExtraEarningCustomer</code>).</td>
+    </tr>
+    <tr>
+      <td><code>dblServiceFee3</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Additional income / tertiary fee charged to the customer (maps to <code>dblAdditionalIncomeCustomer</code>).</td>
+    </tr>
+    <tr>
+      <td><code>dblDiscount1</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Primary discount given to the customer (maps to <code>dblDiscountCustomer</code>).</td>
+    </tr>
+    <tr>
+      <td><code>dblDiscount2</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>PLB discount passed to the customer (maps to <code>dblPlbDiscountCustomer</code>).</td>
+    </tr>
+    <tr>
+      <td><code>dblDiscount3</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Additional / tertiary discount for the customer (maps to <code>dblAdditionalDiscountCustomer</code>).</td>
+    </tr>
+    <tr>
+      <td><code>dblSellingPriceCustomer</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Total selling price (fare + taxes + fees − discounts) billed to the customer in customer currency.</td>
+    </tr>
+    <tr>
+      <td><code>dblCustomerOutputTax</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Output VAT / billing tax amount charged to the customer on top of the selling price.</td>
+    </tr>
+    <tr>
+      <td><code>dblExpenseOutputTax</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Output tax on agency expense side (maps to <code>dblCustomerExpenseOutputTax</code>).</td>
+    </tr>
+    <tr>
+      <td><code>dblAgencyChargeRfd</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Agency-retained charge on a refund transaction (e.g. cancellation fee retained by the agency).</td>
+    </tr>
+    <tr>
+      <td><code>strCustomerLpoOrToNumber</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Customer's Local Purchase Order (LPO) or Tour Order reference number. Used for corporate billing reconciliation.</td>
+    </tr>
+    <tr>
+      <td><code>datCustomerLpoDate</code></td>
+      <td>string (date)</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Date of the customer LPO. Format: <code>"YYYY-MM-DD"</code>.</td>
+    </tr>
+    <tr>
+      <td><code>strPaybackAccount1</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Account code for the first payback/rebate account (used to distribute part of the income to another GL account).</td>
+    </tr>
+    <tr>
+      <td><code>dblPaybackAmount1</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Amount to pay back to <code>strPaybackAccount1</code>.</td>
+    </tr>
+    <tr>
+      <td><code>strPaybackAccount2</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Account code for the second payback account.</td>
+    </tr>
+    <tr>
+      <td><code>dblPaybackAmount2</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Amount to pay back to <code>strPaybackAccount2</code>.</td>
+    </tr>
+    <tr>
+      <td><code>strPaybackAccount3</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Account code for the third payback account.</td>
+    </tr>
+    <tr>
+      <td><code>dblPaybackAmount3</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Amount to pay back to <code>strPaybackAccount3</code>.</td>
+    </tr>
+    <tr>
+      <td><code>strMaskedCardNo</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Masked credit/debit card number used for payment (e.g. <code>"4111XXXXXXXX1111"</code>). Do NOT send the full unmasked card number.</td>
+    </tr>
+    <tr>
+      <td><code>strCardAuthorizationCode</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Payment gateway authorization code for the card transaction.</td>
+    </tr>
+    <tr>
+      <td><code>strGrAccountCode</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Government Receivable (GR) account code for government-billed transactions.</td>
+    </tr>
+    <tr>
+      <td><code>strGrLpoNumber</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>LPO number associated with the GR account.</td>
+    </tr>
+    <tr>
+      <td><code>strFopElement</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Form of Payment (FOP) element as stored in the GDS PNR (e.g. <code>"CC VI4111111111111111/0125"</code>).</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="extras-fields">4c. Extras Fields (ticket root level)</h3>
+<p class="section-label">Supplementary references stored in ticket extras</p>
+<table>
+  <thead>
+    <tr><th width="28%">Field</th><th width="10%">Type</th><th width="10%">Required</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>strIataNo</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>IATA agency number associated with the issuing agency for this ticket.</td>
+    </tr>
+    <tr>
+      <td><code>strGdsPnrNumber</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>GDS-specific PNR number (may differ from <code>strPnrNumber</code> when the GDS booking reference uses a different format).</td>
+    </tr>
+    <tr>
+      <td><code>strRelatedTicketNo</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Ticket number of a related/original ticket (e.g. the original ticket being exchanged or refunded).</td>
+    </tr>
+    <tr>
+      <td><code>strPaxEmail</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Passenger email address. Used for communication and stored in ticket extras.</td>
+    </tr>
+    <tr>
+      <td><code>strPaxContactNo</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Passenger phone / contact number.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="segment-fields">4d. Segment Details (<code>arrSegmentDetails</code>)</h3>
+<p class="section-label">Individual flight segments for the ticket (applicable to SALE transactions)</p>
+<div class="note">
+  <code>arrSegmentDetails</code> is an optional array of flight segments. Each segment represents one flight leg. Segment data is only saved for <code>SALE</code> transactions; it is ignored for <code>REFUND</code>.
+</div>
+<table>
+  <thead>
+    <tr><th width="28%">Field</th><th width="10%">Type</th><th width="10%">Required</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>strFlightNumber</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Flight number (e.g. <code>"ET 303"</code>).</td>
+    </tr>
+    <tr>
+      <td><code>strOpsAirlineNumCode</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Operating airline's 3-digit IATA numeric code.</td>
+    </tr>
+    <tr>
+      <td><code>strOpsAirlineChrCode</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Operating airline's 2-letter IATA character code (e.g. <code>"ET"</code>).</td>
+    </tr>
+    <tr>
+      <td><code>strDepartureDate</code></td>
+      <td>string (datetime)</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Departure date and time. Accepts ISO 8601 or standard date strings. The date portion is stored as <code>dat_departure_date</code>; the full string as departure time.</td>
+    </tr>
+    <tr>
+      <td><code>strArrivalDate</code></td>
+      <td>string (datetime)</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Arrival date and time. Same format as <code>strDepartureDate</code>.</td>
+    </tr>
+    <tr>
+      <td><code>strOriginType</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>IATA 3-letter origin airport code (e.g. <code>"DXB"</code>).</td>
+    </tr>
+    <tr>
+      <td><code>strArrivalAirport</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>IATA 3-letter destination/arrival airport code (e.g. <code>"BOM"</code>). Also stored as <code>vchr_destination_code</code>.</td>
+    </tr>
+    <tr>
+      <td><code>strDepartureAirport</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Departure airport name or code (stored in segment extras).</td>
+    </tr>
+    <tr>
+      <td><code>strDepartureTerminal</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Departure terminal identifier (e.g. <code>"T3"</code>). Stored in segment extras.</td>
+    </tr>
+    <tr>
+      <td><code>strArrivalTerminal</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Arrival terminal identifier. Stored in segment extras.</td>
+    </tr>
+    <tr>
+      <td><code>strCabinClass</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Cabin class for this segment (e.g. <code>"Economy"</code>, <code>"Business"</code>). Maps to <code>vchr_class_of_service</code>.</td>
+    </tr>
+    <tr>
+      <td><code>strBookingClass</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Booking class / RBD for this segment. Maps to <code>vchr_class_of_booking</code>.</td>
+    </tr>
+    <tr>
+      <td><code>strFareBasis</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Fare basis code for this segment (e.g. <code>"YOWAE"</code>). The system aggregates unique fare basis codes across all segments for the ticket.</td>
+    </tr>
+    <tr>
+      <td><code>strSegmentNo</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Segment sequence number within the itinerary. Stored in extras.</td>
+    </tr>
+    <tr>
+      <td><code>strAircraftIataCode</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>IATA aircraft type code (e.g. <code>"77W"</code> for Boeing 777). Stored in extras.</td>
+    </tr>
+    <tr>
+      <td><code>strAircraft</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Aircraft name/model (e.g. <code>"Boeing 777-300ER"</code>). Stored in extras.</td>
+    </tr>
+    <tr>
+      <td><code>strSeatAlloted</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Seat number allocated to the passenger (e.g. <code>"23A"</code>). Stored in extras.</td>
+    </tr>
+    <tr>
+      <td><code>bintMileage</code></td>
+      <td>number</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Distance in miles for this segment. Used for mileage-based reporting.</td>
+    </tr>
+    <tr>
+      <td><code>strCo2Emisssion</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>CO₂ emission value for this flight segment (for sustainability reporting). Stored in extras.</td>
+    </tr>
+    <tr>
+      <td><code>strBaggageInfo</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Baggage allowance information for this segment (e.g. <code>"2PC 23KG"</code>). Stored in extras.</td>
+    </tr>
+    <tr>
+      <td><code>chr_transaction_type</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Segment transaction type. Defaults to <code>"I"</code> (Issued) if not provided. Internal system field.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="remarks-fields">4e. GDS Remarks &amp; Transactional Remarks</h3>
+
+<h4>GDS Remarks — <code>objGdsRemarks</code></h4>
+<p>An optional key-value object where each key is a GDS remark type/code and the value is the remark text. GDS remark codes must be configured in NutraACS. Unrecognised remark codes are rejected per ticket.</p>
+<pre><code>"objGdsRemarks": {
+  "TOUR_CODE": "CORPRATE2024",
+  "ENDORSEMENT": "NON-REFUNDABLE",
+  "INVOICE_REMARK": "PROJECT-ALPHA"
+}</code></pre>
+
+<h4>Transactional Remarks — <code>objTransactionalRemarks</code></h4>
+<p>An optional key-value object used to capture structured transactional data against configurable remark masters. Keys are the master remark <b>name</b> (as configured in NutraACS), and values are the detail option's <b>code</b> or <b>name</b>.</p>
+<div class="note">
+  <b>Do NOT send database primary keys.</b> Send the human-readable master name as the key, and the detail option's <code>vchr_code</code> or <code>vchr_name</code> as the value. The system resolves to PKs internally (code is tried first, then name — both case-insensitive).
+</div>
+<pre><code>"objTransactionalRemarks": {
+  "Trip Purpose":    "Business",
+  "Approval Status": "APPROVED",
+  "Cost Center":     "CC-FINANCE"
+}</code></pre>
+<table>
+  <thead>
+    <tr><th>Validation</th><th>Error Code</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>A mandatory remark master has no value provided (and <code>blnSkipMandatory</code> is not set)</td>
+      <td><code>IMPORTING_ERRORS.TRANSACTIONAL_REMARKS_MANDATORY_MISSING_{masterPk}</code></td>
+    </tr>
+    <tr>
+      <td>The master name provided does not exist in NutraACS</td>
+      <td><code>IMPORTING_ERRORS.INVALID_TRANSACTIONAL_REMARK_MASTER_{masterName}</code></td>
+    </tr>
+    <tr>
+      <td>The detail code/name provided is not a valid option for the given master</td>
+      <td><code>IMPORTING_ERRORS.INVALID_TRANSACTIONAL_REMARK_DETAIL_{masterName}</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="dimension-fields">4f. Dimension Codes</h3>
+<p>Up to three optional dimension codes can be attached per ticket. Dimension codes represent analytical dimensions (e.g. cost centre, project, department) configured in NutraACS. Values are resolved by code (case-insensitive) and must be active dimension entries.</p>
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>strDimensionCodeOne</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Code for the first dimension (e.g. cost centre code <code>"CC-001"</code>). Maps to Dimension 1 configured in the tenant.</td>
+    </tr>
+    <tr>
+      <td><code>strDimensionCodeTwo</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Code for the second dimension (e.g. project code <code>"PROJ-ALPHA"</code>). Maps to Dimension 2.</td>
+    </tr>
+    <tr>
+      <td><code>strDimensionCodeThree</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Code for the third dimension. Maps to Dimension 3.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ===== VALIDATIONS ===== -->
+<h2 id="validations">5. Validations</h2>
+
+<h3>5a. Batch-Level Validations (rejects entire request)</h3>
+<table>
+  <thead>
+    <tr><th>Rule</th><th>Error Response</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>One or more tickets in <code>arrTickets</code> are missing <code>strTicketNumber</code></td>
+      <td><code>{ "strMessage": "KEY_MISSING_TICKET_NUMBER", "objDetails": { "arrPk": [...] } }</code></td>
+    </tr>
+    <tr>
+      <td>One or more tickets are missing <code>strTransactionType</code></td>
+      <td><code>{ "strMessage": "KEY_MISSING_TRANSACTION_TYPE", "objDetails": { "arrVouchers": [...] } }</code></td>
+    </tr>
+    <tr>
+      <td>One or more tickets have a <code>strTransactionType</code> value other than <code>"SALE"</code> or <code>"REFUND"</code></td>
+      <td><code>{ "strMessage": "INVALID_TRANSACTION_TYPE", "objDetails": { "arrVouchers": [...] } }</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>5b. Per-Ticket Validations (reported in import result)</h3>
+<p>Tickets that fail per-ticket validations are moved to the failed list and the remaining valid tickets are still processed (unless the failure is fatal).</p>
+<table>
+  <thead>
+    <tr><th>Rule</th><th>Error Key</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>datIssue</code> (in <code>objDetails</code>) is missing for a <code>SALE</code> transaction</td>
+      <td><code>ISSUE_DATE_MISSING</code></td>
+    </tr>
+    <tr>
+      <td><code>datRefund</code> (in <code>objDetails</code>) is missing for a <code>REFUND</code> transaction</td>
+      <td><code>REFUND_DATE_MISSING</code></td>
+    </tr>
+    <tr>
+      <td>Supplier currency code is not found in the system</td>
+      <td><code>IMPORTING_ERRORS.INVALID_SUPPLIER_CURRENCY</code></td>
+    </tr>
+    <tr>
+      <td>Customer currency code is not found in the system</td>
+      <td><code>IMPORTING_ERRORS.INVALID_CUSTOMER_CURRENCY</code></td>
+    </tr>
+    <tr>
+      <td>GDS remark code in <code>objGdsRemarks</code> is not a recognised remark type</td>
+      <td><code>IMPORTING_ERRORS.INVALID_GDS_REMARK_{remarkCode}</code></td>
+    </tr>
+    <tr>
+      <td>Mandatory transactional remark master has no value supplied</td>
+      <td><code>IMPORTING_ERRORS.TRANSACTIONAL_REMARKS_MANDATORY_MISSING_{masterPk}</code></td>
+    </tr>
+    <tr>
+      <td>Transactional remark master name does not exist in the system</td>
+      <td><code>IMPORTING_ERRORS.INVALID_TRANSACTIONAL_REMARK_MASTER_{masterName}</code></td>
+    </tr>
+    <tr>
+      <td>Transactional remark detail value (code or name) is not a valid option for the given master</td>
+      <td><code>IMPORTING_ERRORS.INVALID_TRANSACTIONAL_REMARK_DETAIL_{masterName}</code></td>
+    </tr>
+    <tr>
+      <td>Dimension code in <code>strDimensionCodeOne/Two/Three</code> is not found</td>
+      <td><code>IMPORTING_ERRORS.INVALID_DIMENSION_CODE_{dimensionCode}</code></td>
+    </tr>
+    <tr>
+      <td>Duplicate ticket number already exists in the system for the same customer</td>
+      <td><code>IMPORTING_ERRORS.DUPLICATE_TICKET</code></td>
+    </tr>
+    <tr>
+      <td>Flight sector(s) in <code>strSector</code> or <code>arrSegmentDetails</code> are invalid</td>
+      <td><code>IMPORTING_ERRORS.INVALID_SECTOR</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ===== EXAMPLE REQUEST ===== -->
+<h2 id="examples">6. Example Request</h2>
+<pre><code>{
+  "strProviderCode": "NUFLIGHTS",
+  "objPaymentInfo": {
+    "strPaymentMode": "CREDIT",
+    "strAccountCode": "BANK-001"
+  },
+  "arrTickets": [
+    {
+      "strTicketNumber": "176-2345678901",
+      "strTransactionType": "SALE",
+      "strPaxName": "AHMED/NOOR MR",
+      "strPaxType": "ADT",
+      "strTicketType": "TKT",
+      "strTicketStatus": "OPEN",
+      "strGdsCompany": "AMADEUS",
+      "strPnrNumber": "XYZABC",
+      "datBooking": "2026-04-01",
+      "datTravelDate": "2026-04-15",
+      "datReturnDate": "2026-04-22",
+      "strClass": "Economy",
+      "strClassRBD": "Y",
+      "intAirlineNumericCode": "176",
+      "strRegionCode": "MIDDLE_EAST",
+      "strBookingAgentId": "AGT001",
+      "strBookingAgentEmail": "agent@agency.com",
+      "strConnectionTicketNumber": "",
+      "strIataNo": "12345678",
+      "strGdsPnrNumber": "XYZABC",
+      "strPaxEmail": "noor.ahmed@email.com",
+      "strPaxContactNo": "+971501234567",
+      "strDimensionCodeOne": "CC-FINANCE",
+      "strDimensionCodeTwo": "PROJ-ALPHA",
+      "objDetails": {
+        "datIssue": "2026-04-01",
+        "strBranch": "HO",
+        "strTicketingAgentId": "AGT002",
+        "strSector": "DXB/ADD/DXB",
+        "strSupplier": "ET",
+        "strSupplierCurrency": "USD",
+        "dblSupplierROE": 3.67,
+        "dblPublishedFare": 450.00,
+        "dblMarketFare": 420.00,
+        "dblTax": 85.00,
+        "strTaxDetails": "YQ45.00USGB40.00",
+        "dblSupplierCommission1": 21.00,
+        "dblAirlineCharge": 0,
+        "dblInputTax": 0,
+        "dblSupplierFee": 0,
+        "strCustomer": "IN0098",
+        "strCustomerCurrency": "AED",
+        "dblCustomerROE": 1,
+        "dblServiceFee1": 25.00,
+        "dblDiscount1": 0,
+        "dblSellingPriceCustomer": 1856.95
+      },
+      "arrSegmentDetails": [
+        {
+          "strFlightNumber": "ET 303",
+          "strOpsAirlineChrCode": "ET",
+          "strOpsAirlineNumCode": "071",
+          "strDepartureDate": "2026-04-15T08:30:00",
+          "strArrivalDate": "2026-04-15T12:45:00",
+          "strOriginType": "DXB",
+          "strArrivalAirport": "ADD",
+          "strCabinClass": "Economy",
+          "strBookingClass": "Y",
+          "strFareBasis": "YOWAE",
+          "strSegmentNo": "1",
+          "strAircraftIataCode": "77W",
+          "strSeatAlloted": "23A",
+          "bintMileage": 1723
+        }
+      ],
+      "objGdsRemarks": {
+        "TOUR_CODE": "CORP2024",
+        "ENDORSEMENT": "NON-REFUNDABLE"
+      },
+      "objTransactionalRemarks": {
+        "Trip Purpose":    "Business",
+        "Approval Status": "APPROVED"
+      }
+    }
+  ]
+}</code></pre>
+
+<!-- ===== RESPONSES ===== -->
+<h2 id="responses">7. Responses</h2>
+
+<h3>Success</h3>
+<p>Returns a summary of the import result with saved, failed, and skipped ticket lists.</p>
+<pre><code>{
+  "arrSavedTickets": ["176-2345678901"],
+  "arrFailedTickets": {},
+  "arrSkippedTickets": []
+}</code></pre>
+
+<h3>Partial Success</h3>
+<p>If some tickets pass and some fail, the successful ones are saved and failures are returned with reasons.</p>
+<pre><code>{
+  "arrSavedTickets": ["176-2345678901"],
+  "arrFailedTickets": {
+    "SALE": {
+      "176-9999000001": [
+        "IMPORTING_ERRORS.INVALID_TRANSACTIONAL_REMARK_MASTER_Trip Purpose"
+      ]
+    }
+  },
+  "arrSkippedTickets": []
+}</code></pre>
+
+<h3>Error Responses</h3>
+<table>
+  <thead>
+    <tr><th>Scenario</th><th>Status Code</th><th>Example Response</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Ticket number missing in one or more records</td>
+      <td>400</td>
+      <td><code>{ "strMessage": "KEY_MISSING_TICKET_NUMBER", "objDetails": { "arrPk": [null] } }</code></td>
+    </tr>
+    <tr>
+      <td>Transaction type field missing</td>
+      <td>400</td>
+      <td><code>{ "strMessage": "KEY_MISSING_TRANSACTION_TYPE", "objDetails": { "arrVouchers": [...] } }</code></td>
+    </tr>
+    <tr>
+      <td>Invalid transaction type value</td>
+      <td>400</td>
+      <td><code>{ "strMessage": "INVALID_TRANSACTION_TYPE", "objDetails": { "arrVouchers": ["176-2345678901"] } }</code></td>
+    </tr>
+    <tr>
+      <td>Invalid or unregistered provider code</td>
+      <td>400</td>
+      <td><code>{ "errCommon": [{ "strMessage": "INVALID_VENDOR_CODE" }] }</code></td>
+    </tr>
+    <tr>
+      <td>Unhandled server error</td>
+      <td>500</td>
+      <td><code>{ "errCommon": [{ "strMessage": "INTERNAL_SERVER_ERROR" }] }</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<br>
+<hr>
+<p style="font-size:12px; color:#888;">NutraACS Integration Guide &mdash; Save Third Party Tickets API &mdash; Generated April 2026</p>
+</body>
+</html>
