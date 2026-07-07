@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NutraACS Integration Guide – Save Third Party Multi-Voucher Invoice API</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 40px; color: #333; line-height: 1.6; }
+  h1 { font-size: 22px; margin: 0 0 4px 0; }
+  h2 { font-size: 18px; margin-top: 30px; border-bottom: 2px solid #e0e0e0; padding-bottom: 4px; }
+  h3 { font-size: 15px; margin-top: 20px; color: #444; }
+  p.lead { color: #333; margin: 4px 0 14px 0; }
+  code { background-color: #f4f4f4; padding: 1px 4px; border-radius: 3px; font-size: 13px; }
+  pre { background-color: #f4f4f4; padding: 14px; border-radius: 6px; overflow-x: auto; font-size: 13px; border-left: 4px solid #ccc; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+  th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background-color: #f0f0f0; font-weight: bold; }
+  tr:nth-child(even) { background-color: #fafafa; }
+  .badge-req { background: #fdecea; color: #c0392b; border-radius: 3px; padding: 1px 6px; font-size: 11px; font-weight: bold; }
+  .badge-opt { background: #eafaf1; color: #27ae60; border-radius: 3px; padding: 1px 6px; font-size: 11px; }
+  .badge-cond { background: #fef9e7; color: #d35400; border-radius: 3px; padding: 1px 6px; font-size: 11px; }
+  .note { background: #eaf4fb; border-left: 4px solid #3498db; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 13px; }
+  .warn { background: #fef9e7; border-left: 4px solid #f39c12; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 13px; }
+  .toc { background: #f8f8f8; border: 1px solid #ddd; padding: 14px 20px; border-radius: 6px; display: inline-block; margin-bottom: 20px; }
+  .toc ul { margin: 0; padding-left: 20px; }
+  .toc li { margin: 3px 0; }
+  .toc a { text-decoration: none; color: #2980b9; }
+  .toc a:hover { text-decoration: underline; }
+  .section-label { font-size: 11px; text-transform: uppercase; color: #888; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<h1>NutraACS Integration Guide – Save Third Party Multi-Voucher Invoice API</h1>
+<p class="lead">Push a mixed batch of vouchers (any combination of <b>Car</b>, <b>Ticket</b>, <b>Hotel</b>, and <b>Other</b>) into <b>NutraACS</b> in a single request, and receive one consolidated invoice covering all of them.</p>
+
+<div class="note">
+  Use this endpoint when a single trip or booking spans multiple product types (e.g. flight + hotel + car for the same customer) and you want them settled as one invoice. For single-type batches you may keep using the per-type endpoints (<a href="save-third-party-ticket.html">Ticket</a>, <a href="save-third-party-car-voucher.html">Car</a>, <a href="save-third-party-hotel-voucher.html">Hotel</a>, <a href="save-third-party-other-voucher.html">Other</a>).
+</div>
+
+<div class="toc">
+  <b>Contents</b>
+  <ul>
+    <li><a href="#endpoint">1. API Endpoint</a></li>
+    <li><a href="#request-structure">2. Request Structure</a></li>
+    <li><a href="#top-level">3. Top-Level Fields</a></li>
+    <li><a href="#voucher-fields">4. Per-Type Voucher Object Fields</a></li>
+    <li><a href="#customer-branch">5. Customer, Currency &amp; Branch</a></li>
+    <li><a href="#payment-info">6. Payment Info (objPaymentInfo)</a></li>
+    <li><a href="#processing">7. Processing Flow</a></li>
+    <li><a href="#example">8. Example Request</a></li>
+    <li><a href="#responses">9. Responses</a></li>
+  </ul>
+</div>
+
+<!-- ===== ENDPOINT ===== -->
+<h2 id="endpoint">1. API Endpoint</h2>
+<p><b>POST</b> <code>/api/integration/voucher/save_third_party_multi_voucher_invoice</code></p>
+<p><b>Content-Type:</b> <code>application/json</code></p>
+
+<!-- ===== REQUEST STRUCTURE ===== -->
+<h2 id="request-structure">2. Request Structure</h2>
+<pre><code>{
+  "strProviderCode": "NUFLIGHTS",
+  "arrCarVouchers":    [ /* car voucher objects — see Section 4 */ ],
+  "arrTicketVouchers": [ /* ticket voucher objects — see Section 4 */ ],
+  "arrHotelVouchers":  [ /* hotel voucher objects — see Section 4 */ ],
+  "arrOtherVouchers":  [ /* other voucher objects — see Section 4 */ ],
+  "strCustomerCode":     "00001",   /* see Section 5 */
+  "strCustomerCurrency": "INR",     /* see Section 5 */
+  "strBranchCode":       "MAIN",    /* see Section 5 */
+  "objPaymentInfo": { /* shared payment info for the single generated invoice — see Section 6 */ }
+}</code></pre>
+
+<div class="note">
+  <b>The endpoint does not accept an <code>objCommonData</code> block.</b> Customer, branch, currency, ROE, precision, and created-by user are all resolved server-side from the three code fields plus the JWT. This mirrors the way the per-type third-party endpoints work.
+</div>
+
+<div class="note">
+  All four voucher arrays are optional individually, but <b>at least one must contain items</b>. Sending an empty payload (or all four arrays empty) returns <code>NO_RECORD_TO_SYNC</code>.
+</div>
+
+<!-- ===== TOP-LEVEL FIELDS ===== -->
+<h2 id="top-level">3. Top-Level Fields</h2>
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>strProviderCode</code></td>
+      <td>string</td>
+      <td><span class="badge-opt">Optional</span></td>
+      <td>Vendor/provider code identifying the third-party system (e.g. <code>"NUFLIGHTS"</code>). When supplied, must be registered in NutraACS. Forwarded to every per-type save call.</td>
+    </tr>
+    <tr>
+      <td><code>arrCarVouchers</code></td>
+      <td>array</td>
+      <td><span class="badge-cond">Conditional</span></td>
+      <td>Zero or more car voucher objects. <b>Each element uses the exact same shape as one entry of <code>arrVouchers</code> in the <a href="save-third-party-car-voucher.html">Save Third-Party Car Voucher API</a>.</b></td>
+    </tr>
+    <tr>
+      <td><code>arrTicketVouchers</code></td>
+      <td>array</td>
+      <td><span class="badge-cond">Conditional</span></td>
+      <td>Zero or more ticket objects. <b>Each element uses the exact same shape as one entry of <code>arrTickets</code> in the <a href="save-third-party-ticket.html">Save Third-Party Tickets API</a>.</b></td>
+    </tr>
+    <tr>
+      <td><code>arrHotelVouchers</code></td>
+      <td>array</td>
+      <td><span class="badge-cond">Conditional</span></td>
+      <td>Zero or more hotel voucher objects. <b>Each element uses the exact same shape as one entry of <code>arrVouchers</code> in the <a href="save-third-party-hotel-voucher.html">Save Third-Party Hotel Voucher API</a>.</b></td>
+    </tr>
+    <tr>
+      <td><code>arrOtherVouchers</code></td>
+      <td>array</td>
+      <td><span class="badge-cond">Conditional</span></td>
+      <td>Zero or more other-service voucher objects. <b>Each element uses the exact same shape as one entry of <code>arrVouchers</code> in the <a href="save-third-party-other-voucher.html">Save Third-Party Other Voucher API</a>.</b></td>
+    </tr>
+    <tr>
+      <td><code>strCustomerCode</code></td>
+      <td>string</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>Customer account code (e.g. <code>"00001"</code>). Resolved server-side to the full customer account row. See <a href="#customer-branch">Section 5</a>.</td>
+    </tr>
+    <tr>
+      <td><code>strCustomerCurrency</code></td>
+      <td>string</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>ISO currency code for the invoice (e.g. <code>"INR"</code>, <code>"USD"</code>). Drives ROE and precision lookups.</td>
+    </tr>
+    <tr>
+      <td><code>strBranchCode</code></td>
+      <td>string</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>Branch code (e.g. <code>"MAIN"</code>). Resolved server-side to the full branch row.</td>
+    </tr>
+    <tr>
+      <td><code>objPaymentInfo</code></td>
+      <td>object</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>Shared payment information for the single consolidated invoice. See <a href="#payment-info">Section 6</a>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="warn">
+  <b>Conditional</b> means: individually optional, but at least one of the four voucher arrays must be non-empty for the request to succeed.
+</div>
+
+<!-- ===== VOUCHER FIELDS ===== -->
+<h2 id="voucher-fields">4. Per-Type Voucher Object Fields</h2>
+<p>To avoid duplicating thousands of field definitions, the per-voucher object structures are documented in the existing per-type integration guides. This endpoint accepts <b>exactly the same object shape</b> for each voucher; only the enclosing array name differs.</p>
+
+<table>
+  <thead>
+    <tr><th>Array in this endpoint</th><th>Object shape reference</th><th>Voucher-number field</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>arrCarVouchers[i]</code></td>
+      <td><a href="save-third-party-car-voucher.html">Save Third-Party Car Voucher API</a> — <code>arrVouchers[i]</code></td>
+      <td><code>strVoucherNo</code></td>
+    </tr>
+    <tr>
+      <td><code>arrTicketVouchers[i]</code></td>
+      <td><a href="save-third-party-ticket.html">Save Third-Party Tickets API</a> — <code>arrTickets[i]</code></td>
+      <td><code>strTicketNumber</code></td>
+    </tr>
+    <tr>
+      <td><code>arrHotelVouchers[i]</code></td>
+      <td><a href="save-third-party-hotel-voucher.html">Save Third-Party Hotel Voucher API</a> — <code>arrVouchers[i]</code></td>
+      <td><code>strVoucherNo</code></td>
+    </tr>
+    <tr>
+      <td><code>arrOtherVouchers[i]</code></td>
+      <td><a href="save-third-party-other-voucher.html">Save Third-Party Other Voucher API</a> — <code>arrVouchers[i]</code></td>
+      <td><code>strVoucherNo</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note">
+  Do <b>not</b> include a per-voucher <code>objPaymentInfo</code> on individual items — payment info is set once at the top level of this request and applies to the whole batch.
+</div>
+
+<!-- ===== CUSTOMER, CURRENCY & BRANCH ===== -->
+<h2 id="customer-branch">5. Customer, Currency &amp; Branch</h2>
+<p>Instead of accepting a nested <code>objCommonData</code> block, the endpoint takes three code fields at the top level of the request and resolves the full context server-side. This keeps the payload aligned with the per-type third-party endpoints (which also work purely from codes).</p>
+
+<h3>What the caller sends</h3>
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>strCustomerCode</code></td>
+      <td>string</td>
+      <td>Account code registered against a customer partner. Rejected with <code>INVALID_CUSTOMER_CODE</code> if no matching active row exists.</td>
+    </tr>
+    <tr>
+      <td><code>strCustomerCurrency</code></td>
+      <td>string</td>
+      <td>ISO currency code — must exist in <code>tbl_currency</code> with a precision configured. Rejected with <code>INVALID_CURRENCY</code> otherwise.</td>
+    </tr>
+    <tr>
+      <td><code>strBranchCode</code></td>
+      <td>string</td>
+      <td>Branch code — must resolve to an active row in <code>tbl_branch</code>. Rejected with <code>INVALID_BRANCH_CODE</code> otherwise.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>What the server derives</h3>
+<table>
+  <thead>
+    <tr><th>Resolved field</th><th>Source</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>objCustomerAccount</code></td>
+      <td>Looked up by <code>strCustomerCode</code>; carries <code>intPk</code>, <code>strDefaultCurrency</code>, <code>strName</code>, GDS-remark hints, and other account metadata.</td>
+    </tr>
+    <tr>
+      <td><code>objBranch</code></td>
+      <td>Looked up by <code>strBranchCode</code>; carries <code>intPk</code>, <code>strCode</code>, <code>strName</code>.</td>
+    </tr>
+    <tr>
+      <td><code>dblRoe</code></td>
+      <td>Fetched via the ROE settings usecase for <code>strCustomerCurrency</code> effective on <code>objPaymentInfo.strDocumentDate</code>. Falls back to <code>1</code> when the ROE settings return no rate (typically when the currency equals the base currency).</td>
+    </tr>
+    <tr>
+      <td><code>intPrecision</code></td>
+      <td>Fetched via <code>getAllCurrenciesPrecisionsValueDb</code>, keyed by <code>strCustomerCurrency</code>.</td>
+    </tr>
+    <tr>
+      <td><code>strCreatedUser</code></td>
+      <td>Resolved from <code>source.intUserID</code> (JWT) by joining <code>tbl_user</code>. Rejected with <code>INVALID_USER</code> if no active user row matches.</td>
+    </tr>
+    <tr>
+      <td><code>timCreated</code></td>
+      <td>Request receipt timestamp from <code>source.timReceived</code>.</td>
+    </tr>
+    <tr>
+      <td><code>objDimensions</code></td>
+      <td><code>null</code> — this endpoint does not accept dimension overrides in the current iteration.</td>
+    </tr>
+    <tr>
+      <td><code>objSupplierAccount</code></td>
+      <td><code>null</code> — per-voucher supplier context is carried by each voucher payload and not required on the invoice level.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ===== PAYMENT INFO ===== -->
+<h2 id="payment-info">6. Payment Info (<code>objPaymentInfo</code>)</h2>
+<p>Payment context for the single generated invoice. Because this endpoint <b>always</b> generates one consolidated invoice, <code>objPaymentInfo</code> is <b>required</b> (unlike the per-type endpoints, where it is optional).</p>
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>strDocumentDate</code></td>
+      <td>string (date)</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>Invoice document date.</td>
+    </tr>
+    <tr>
+      <td><code>strModeOfSale</code></td>
+      <td>string</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>Payment mode. Accepted values: <code>"Credit"</code>, <code>"Cash"</code>, etc. — matches the tenant's payment configuration.</td>
+    </tr>
+    <tr>
+      <td><code>arrPaymentOptions</code></td>
+      <td>array</td>
+      <td><span class="badge-req">Required</span></td>
+      <td>At least one payment option describing how the invoice is settled. Same shape as in the per-type docs. The sum of <code>dblTranCurDebitedAmount</code> across all options is treated as the invoice total in the current iteration (see note under Section 7).</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ===== PROCESSING FLOW ===== -->
+<h2 id="processing">7. Processing Flow</h2>
+<ol>
+  <li>Open a single database transaction.</li>
+  <li>For each non-empty voucher array, invoke the corresponding per-type third-party save flow. Each per-type flow runs its normal validations and <b>credit-limit checks</b>. If any voucher trips a credit-limit block, <code>FAILED_DUE_TO_CREDIT_LIMIT_EXCEEDED</code> is thrown, the transaction is rolled back, and no invoice is generated.</li>
+  <li>Collect all successfully saved voucher numbers into a single list, tagged with their service type (<code>C</code>, <code>T</code>, <code>H</code>, <code>O</code>).</li>
+  <li>Call the invoice generator <b>once</b> with the combined list, <code>objCommonData</code>, and <code>objPaymentInfo</code>.</li>
+  <li>Commit the transaction and return the single <code>strDocumentNumber</code> together with each per-type save response for reference.</li>
+</ol>
+
+<div class="warn">
+  This endpoint is <b>all-or-nothing across the whole batch</b>: if <em>any</em> voucher in <em>any</em> type fails validation, or if invoice generation fails, the whole transaction rolls back and no voucher persists. Unlike the per-type third-party endpoints, this endpoint does not support partial success — mixed-batch invoices must not straddle partial failure.
+</div>
+
+<div class="note">
+  <b>Payment total check is currently skipped.</b> Because real per-voucher totals are only computable after the per-type flows finish, this iteration stubs <code>dblTotalClientAmount</code> with the sum of <code>arrPaymentOptions[].dblTranCurDebitedAmount</code>, which makes the total-vs-debit equality check in <code>validatePaymentInfo</code> pass trivially. Payment-format validations (dates, batch numbers, mode of sale) still run as normal. A future iteration will compute totals from the saved vouchers and re-enable the equality check.
+</div>
+
+<!-- ===== EXAMPLE ===== -->
+<h2 id="example">8. Example Request</h2>
+<pre><code>{
+  "strProviderCode": "NUFLIGHTS",
+
+  "arrTicketVouchers": [
+    {
+      "strTicketNumber": "176-2345678901",
+      "strTransactionType": "SALE",
+      "objMaster": { "strPnrNumber": "ABC123", "objBookingAgent": { "intPk": 42 } },
+      "objDetails": {
+        "datIssue": "2026-07-02",
+        "strCustomer": "ACC0001",
+        "strCustomerCurrency": "USD",
+        "dblCustomerROE": 1,
+        "dblSellingPriceCustomer": 850.00
+      }
+    }
+  ],
+
+  "arrHotelVouchers": [
+    {
+      "strVoucherNo": "HTL-000123",
+      "strTransactionType": "SALE",
+      "objMaster": { "strHotelName": "Grand Palace" },
+      "objDetails": {
+        "datIssue": "2026-07-02",
+        "strCustomer": "ACC0001",
+        "dblSellingPriceCustomer": 620.00
+      }
+    }
+  ],
+
+  "arrCarVouchers": [
+    {
+      "strVoucherNo": "CAR-000045",
+      "strTransactionType": "SALE",
+      "objMaster": { "strCarRentalCompany": "Hertz" },
+      "objDetails": {
+        "datIssue": "2026-07-02",
+        "strCustomer": "ACC0001",
+        "dblSellingPriceCustomer": 210.00
+      }
+    }
+  ],
+
+  "strCustomerCode":     "ACC0001",
+  "strCustomerCurrency": "USD",
+  "strBranchCode":       "HQ",
+
+  "objPaymentInfo": {
+    "strDocumentDate": "2026-07-02",
+    "strModeOfSale": "Credit",
+    "arrPaymentOptions": []
+  }
+}</code></pre>
+
+<!-- ===== RESPONSES ===== -->
+<h2 id="responses">9. Responses</h2>
+
+<h3>Success (HTTP 200)</h3>
+<pre><code>{
+  "strDocumentNumber": "INV/2026/07/000123",
+  "objCarResponse":    { "Success": { "Sale": ["CAR-000045"], "Refund": [] } },
+  "objTicketResponse": { "Success": { "Sale": ["176-2345678901"], "Refund": [] } },
+  "objHotelResponse":  { "Success": { "Sale": ["HTL-000123"], "Refund": [] } }
+}</code></pre>
+
+<p><code>strDocumentNumber</code> is the single consolidated invoice covering every successfully saved voucher across all four types. The per-type response objects (<code>objCarResponse</code>, <code>objTicketResponse</code>, <code>objHotelResponse</code>, <code>objOtherResponse</code>) mirror the shape returned by the corresponding per-type endpoint and are present only for the types included in the request. Success is only returned when every voucher across every type passes validation — see below for the failure case.</p>
+
+<h3>Any-voucher Failure (rolled back)</h3>
+<p>If <b>any</b> voucher in <b>any</b> of the four types fails validation, the endpoint throws <code>NO_RECORD_TO_SYNC</code>, the transaction is rolled back, and no voucher persists. <code>objDetails.objFailed</code> carries the per-service-type failure roll-up so the caller can identify which vouchers were bad.</p>
+<pre><code>{
+  "errCommon": [
+    {
+      "strMessage": "NO_RECORD_TO_SYNC",
+      "objDetails": {
+        "objFailed": {
+          "T": { "Sale": { "176-9999000001": ["IMPORTING_ERRORS.INVALID_TRANSACTIONAL_REMARK_MASTER_Trip Purpose"] } }
+        }
+      }
+    }
+  ]
+}</code></pre>
+<p><code>objFailed</code> keys are the service-type letters <code>C</code> (car), <code>T</code> (ticket), <code>H</code> (hotel), <code>O</code> (other). Each service-type entry contains optional <code>Sale</code> and <code>Refund</code> maps of <code>{ voucherNumber: [reasons] }</code>. The successful vouchers of other types (if any) are also rolled back — nothing is persisted.</p>
+
+<p>If the payload contains no vouchers at all (every array missing or empty), the same <code>NO_RECORD_TO_SYNC</code> is returned but with an empty <code>objDetails</code>.</p>
+
+<h3>Error responses</h3>
+<table>
+  <thead>
+    <tr><th>Condition</th><th><code>strMessage</code></th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>The caller is the built-in super-user (<code>intUserID == 1</code>) — not allowed to create through the API</td>
+      <td><code>NO_PERMISSION_CREATE</code></td>
+    </tr>
+    <tr>
+      <td>All four voucher arrays are empty or missing, or any voucher in any type fails validation (<code>objDetails.objFailed</code> lists the failures)</td>
+      <td><code>NO_RECORD_TO_SYNC</code></td>
+    </tr>
+    <tr>
+      <td><code>strCustomerCode</code> / <code>strCustomerCurrency</code> / <code>strBranchCode</code> missing from the request</td>
+      <td><code>KEY_MISSING_CUSTOMER_CODE</code> / <code>KEY_MISSING_CUSTOMER_CURRENCY</code> / <code>KEY_MISSING_BRANCH_CODE</code></td>
+    </tr>
+    <tr>
+      <td>Provided <code>strCustomerCode</code> does not resolve to an active customer account</td>
+      <td><code>INVALID_CUSTOMER_CODE</code></td>
+    </tr>
+    <tr>
+      <td>Provided <code>strBranchCode</code> does not resolve to an active branch</td>
+      <td><code>INVALID_BRANCH_CODE</code></td>
+    </tr>
+    <tr>
+      <td>Provided <code>strCustomerCurrency</code> has no precision configured</td>
+      <td><code>INVALID_CURRENCY</code></td>
+    </tr>
+    <tr>
+      <td>JWT <code>intUserID</code> does not match an active user row</td>
+      <td><code>INVALID_USER</code></td>
+    </tr>
+    <tr>
+      <td>A voucher is missing its voucher-number key (see <a href="#voucher-fields">Section 4</a>)</td>
+      <td><code>KEY_MISSING_TICKET_NUMBER</code></td>
+    </tr>
+    <tr>
+      <td>A voucher is missing <code>strTransactionType</code></td>
+      <td><code>KEY_MISSING_TRANSACTION_TYPE</code></td>
+    </tr>
+    <tr>
+      <td>A voucher's <code>strTransactionType</code> is not <code>SALE</code> or <code>REFUND</code></td>
+      <td><code>INVALID_TRANSACTION_TYPE</code></td>
+    </tr>
+    <tr>
+      <td>A customer is credit-limit blocked (in any of the per-type flows)</td>
+      <td><code>FAILED_DUE_TO_CREDIT_LIMIT_EXCEEDED</code></td>
+    </tr>
+    <tr>
+      <td>Payment info fails validation (mode of sale invalid, document date invalid, credit-mode customer / currency mismatch against <code>arrPaymentOptions[0]</code>, missing or unbalanced payment amounts, etc.). <code>objDetails.arrMessages</code> lists every reason.</td>
+      <td><code>ERROR_IN_PAYMENT_INFORMATION</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>All error responses roll back the entire transaction — no voucher is persisted and no invoice is generated.</p>
+
+</body>
+</html>
